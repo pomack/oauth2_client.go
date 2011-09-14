@@ -135,7 +135,7 @@ func (p *GoogleClient) HandleClientAccept(code string) os.Error {
         return err
     }
     req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-    r, err := MakeRequest(req)
+    r, err := makeRequest(req)
     //r, err := http.PostForm(url, m)
     if err != nil {
         log.Print("Unable to retrieve generate authorization code uri")
@@ -185,7 +185,7 @@ func (p *GoogleClient) AccessToken() (string, os.Error) {
             return "", err
         }
         req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-        r, err := MakeRequest(req)
+        r, err := makeRequest(req)
         //r, err := http.PostForm(uri, m)
         if err != nil {
             return "", err

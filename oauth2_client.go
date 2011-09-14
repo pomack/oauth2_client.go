@@ -130,11 +130,11 @@ func AuthorizedRequest(client OAuth2Client, method string, headers http.Header, 
     if err != nil {
         return nil, err
     }
-    return MakeRequest(req)
+    return makeRequest(req)
 }
 
 
-func MakeRequest(req *http.Request) (*http.Response, os.Error) {
+func makeRequest(req *http.Request) (*http.Response, os.Error) {
     client := new(http.Client)
     dump, _ := http.DumpRequest(req, true)
     log.Print("Making Request:", "\n=================================\n", string(dump), "=================================\n")
