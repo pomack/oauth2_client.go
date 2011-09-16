@@ -96,7 +96,34 @@ func newNonce() string {
 
 
 func oauthEncode(text string) string {
-    return url.QueryEscape(text)
+    s := url.QueryEscape(text)
+    count := 0
+    for _, c := range s {
+        switch c {
+        case '!', '*', '\'', '(', ')': // characters that are not escaped in url.QueryEscape() but need to be for OAuth encoding
+            count++
+        }
+    }
+    if count > 0 {
+        a := make([]byte, len(s) + count * 2)
+        pos := 0
+        l := len(s)
+        for i := 0; i < l; i++ {
+            c := s[i]
+            switch c {
+            case '!', '*', '\'', '(', ')':
+                a[pos] = '%'
+                a[pos+1] = "0123456789ABCDEF"[c>>4]
+                a[pos+2] = "0123456789ABCDEF"[c&15]
+                pos += 3
+            default:
+                a[pos] = c
+                pos++
+            }
+        }
+        s = string(a)
+    }
+    return s
 }
 
 func getKeys(m url.Values) []string {
@@ -200,6 +227,7 @@ func oauth1PrepareRequest(p OAuth1Client, credentials AuthToken, method, uri str
 	encodedSum := make([]byte, base64.StdEncoding.EncodedLen(len(sum)))
 	base64.StdEncoding.Encode(encodedSum, sum)
     signature := strings.TrimSpace(string(encodedSum))
+    log.Print("Generated signature: \"", signature, "\", with key: \"", key, "\" and message: \"", message, "\"")
     params.Set("oauth_signature", signature)
     return params
 }
