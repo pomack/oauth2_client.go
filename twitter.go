@@ -1,14 +1,50 @@
 package oauth2_client
 
-type TwitterClient struct {
+import (
+    "http"
+    "log"
+    "os"
+    "url"
+    "io"
+)
+
+type TwitterRequestTokenResult interface {
+    AuthToken
+    CallbackConfirmed() bool
+}
+
+type TwitterAccessTokenResult interface {
+    AuthToken
+    UserId()        string
+    ScreenName()    string
+}
+
+type twitterRequestTokenResult struct {
+    stdAuthToken
+    callbackConfirmed   bool
+}
+
+func (p *twitterRequestTokenResult) CallbackConfirmed() bool { return p.callbackConfirmed }
+
+type twitterAccessTokenResult struct {
+    stdAuthToken
+    userId          string
+    screenName      string
+}
+
+func (p *twitterAccessTokenResult) UserId() string { return p.userId }
+func (p *twitterAccessTokenResult) ScreenName() string { return p.screenName }
+
+
+type twitterClient struct {
     stdOAuth1Client
 }
 
-func NewTwitterClient() *TwitterClient {
-    return &TwitterClient{}
+func NewTwitterClient() OAuth2Client {
+    return &twitterClient{}
 }
 
-func (p *TwitterClient) Initialize(properties Properties) {
+func (p *twitterClient) Initialize(properties Properties) {
     if properties == nil {
         return
     }
@@ -54,5 +90,62 @@ func (p *TwitterClient) Initialize(properties Properties) {
         //p.Scope = v
     }
 }
+
+func (p *twitterClient) GenerateRequestTokenUrl(properties Properties) string {
+    return oauth1GenerateRequestTokenUrl(p, properties)
+}
+
+func (p *twitterClient) RequestTokenGranted(req *http.Request) bool {
+    return oauth1RequestTokenGranted(p, req)
+}
+
+func (p *twitterClient) ExchangeRequestTokenForAccess(req *http.Request) os.Error {
+    return oauth1ExchangeRequestTokenForAccess(p, req)
+}
+
+func (p *twitterClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error) {
+    return oauth1CreateAuthorizedRequest(p, method, headers, uri, query, r)
+}
+
+
+
+func (p *twitterClient) ParseRequestTokenResult(value string) (AuthToken, os.Error) {
+    log.Print("+++++++++++++++++++++++++++++++")
+    log.Print("Twitter Client parsing request token result")
+    t := new(twitterRequestTokenResult)
+    m, err := url.ParseQuery(value)
+    if m != nil {
+        t.token = m.Get("oauth_token")
+        t.secret = m.Get("oauth_token_secret")
+        t.callbackConfirmed = m.Get("oauth_callback_confirmed") == "true"
+        if err == nil && len(m.Get("oauth_problem")) > 0 {
+            err = os.NewError(m.Get("oauth_problem"))
+        }
+    }
+    log.Print("+++++++++++++++++++++++++++++++")
+    return t, err
+}
+
+
+func (p *twitterClient) ParseAccessTokenResult(value string) (AuthToken, os.Error) {
+    log.Print("+++++++++++++++++++++++++++++++")
+    log.Print("Twitter Client parsing access token result")
+    t := new(twitterAccessTokenResult)
+    m, err := url.ParseQuery(value)
+    if m != nil {
+        t.token = m.Get("oauth_token")
+        t.secret = m.Get("oauth_token_secret")
+        t.userId = m.Get("user_id")
+        t.screenName = m.Get("screen_name")
+        if err == nil && len(m.Get("oauth_problem")) > 0 {
+            err = os.NewError(m.Get("oauth_problem"))
+        }
+    }
+    log.Print("+++++++++++++++++++++++++++++++")
+    return t, err
+}
+
+
+
 
 

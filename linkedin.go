@@ -1,14 +1,55 @@
 package oauth2_client
 
-type LinkedInClient struct {
+import (
+    "http"
+    "log"
+    "io"
+    "os"
+    "strconv"
+    "time"
+    "url"
+)
+
+type LinkedInRequestTokenResult interface {
+    AuthToken
+    RequestAuthUrl()    string
+    ExpiresAt()         *time.Time
+    CallbackConfirmed() bool
+}
+
+type LinkedInAccessTokenResult interface {
+    AuthToken
+    ExpiresAt()     *time.Time
+}
+
+type linkedInRequestTokenResult struct {
+    stdAuthToken
+    requestAuthUrl      string
+    expiresAt           *time.Time
+    callbackConfirmed   bool
+}
+
+func (p *linkedInRequestTokenResult) RequestAuthUrl() string { return p.requestAuthUrl }
+func (p *linkedInRequestTokenResult) ExpiresAt() *time.Time { return p.expiresAt }
+func (p *linkedInRequestTokenResult) CallbackConfirmed() bool { return p.callbackConfirmed }
+
+type linkedInAccessTokenResult struct {
+    stdAuthToken
+    expiresAt       *time.Time
+}
+
+func (p *linkedInAccessTokenResult) ExpiresAt() *time.Time { return p.expiresAt }
+
+
+type linkedInClient struct {
     stdOAuth1Client
 }
 
-func NewLinkedInClient() *LinkedInClient {
-    return &LinkedInClient{}
+func NewLinkedInClient() OAuth2Client {
+    return &linkedInClient{}
 }
 
-func (p *LinkedInClient) Initialize(properties Properties) {
+func (p *linkedInClient) Initialize(properties Properties) {
     if properties == nil {
         return
     }
@@ -54,5 +95,71 @@ func (p *LinkedInClient) Initialize(properties Properties) {
         //p.Scope = v
     }
 }
+
+func (p *linkedInClient) GenerateRequestTokenUrl(properties Properties) string {
+    return oauth1GenerateRequestTokenUrl(p, properties)
+}
+
+func (p *linkedInClient) RequestTokenGranted(req *http.Request) bool {
+    return oauth1RequestTokenGranted(p, req)
+}
+
+func (p *linkedInClient) ExchangeRequestTokenForAccess(req *http.Request) os.Error {
+    return oauth1ExchangeRequestTokenForAccess(p, req)
+}
+
+func (p *linkedInClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error) {
+    return oauth1CreateAuthorizedRequest(p, method, headers, uri, query, r)
+}
+
+
+
+
+func (p *linkedInClient) ParseRequestTokenResult(value string) (AuthToken, os.Error) {
+    log.Print("+++++++++++++++++++++++++++++++")
+    log.Print("LinkedIn Client parsing request token result")
+    t := new(linkedInRequestTokenResult)
+    m, err := url.ParseQuery(value)
+    if m != nil {
+        t.token = m.Get("oauth_token")
+        t.secret = m.Get("oauth_token_secret")
+        t.requestAuthUrl = m.Get("xoauth_request_auth_url")
+        t.callbackConfirmed = m.Get("callback_confirmed") == "true"
+        strExpiresIn := m.Get("oauth_expires_in")
+        expiresIn, _ := strconv.Atoi64(strExpiresIn)
+        if expiresIn > 0 {
+            t.expiresAt = time.SecondsToUTC(time.Seconds() + expiresIn)
+        }
+        if err == nil && len(m.Get("oauth_problem")) > 0 {
+            err = os.NewError(m.Get("oauth_problem"))
+        }
+    }
+    log.Print("+++++++++++++++++++++++++++++++")
+    return t, err
+}
+
+
+func (p *linkedInClient) ParseAccessTokenResult(value string) (AuthToken, os.Error) {
+    log.Print("+++++++++++++++++++++++++++++++")
+    log.Print("LinkedIn Client parsing access token result")
+    t := new(linkedInAccessTokenResult)
+    m, err := url.ParseQuery(value)
+    if m != nil {
+        t.token = m.Get("oauth_token")
+        t.secret = m.Get("oauth_token_secret")
+        strExpiresIn := m.Get("xoauth_authorization_expires_in")
+        expiresIn, _ := strconv.Atoi64(strExpiresIn)
+        if expiresIn > 0 {
+            t.expiresAt = time.SecondsToUTC(time.Seconds() + expiresIn)
+        }
+        if err == nil && len(m.Get("oauth_problem")) > 0 {
+            err = os.NewError(m.Get("oauth_problem"))
+        }
+    }
+    log.Print("+++++++++++++++++++++++++++++++")
+    return t, err
+}
+
+
 
 

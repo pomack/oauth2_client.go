@@ -37,7 +37,9 @@ type stdAuthToken struct {
 }
 
 type OAuth1Client interface {
+    Client()                        *http.Client
     CurrentCredentials()            AuthToken
+    SetCurrentCredentials(value AuthToken)
     Realm()                         string
     ConsumerKey()                   string
     ConsumerSecret()                string
@@ -50,10 +52,12 @@ type OAuth1Client interface {
     RequestUrlProtected()           bool
     AccessUrlProtected()            bool
     AuthorizedResourceProtected()   bool
-    SetCurrentCredentials(value AuthToken)
+    ParseRequestTokenResult(value string)   (AuthToken, os.Error)
+    ParseAccessTokenResult(value string)    (AuthToken, os.Error)
 }
 
 type stdOAuth1Client struct {
+    client                      *http.Client
     currentCredentials          AuthToken
     serviceName                 string
     realm                       string
@@ -70,7 +74,7 @@ type stdOAuth1Client struct {
     authorizedResourceProtected bool
 }
 
-type RequestHandler func(*http.Response, os.Error, *http.Request)
+type RequestHandler func(*http.Response, *http.Request, os.Error)
 
 var (
 	nonceLock               sync.Mutex
@@ -117,6 +121,12 @@ func (p *stdAuthToken) Secret() string { return p.secret }
 func (p *stdAuthToken) SetToken(value string) { p.token = value }
 func (p *stdAuthToken) SetSecret(value string) { p.secret = value }
 
+func (p *stdOAuth1Client) Client() *http.Client {
+    if p.client == nil {
+        p.client = new(http.Client)
+    }
+    return p.client
+}
 func (p *stdOAuth1Client) CurrentCredentials()            AuthToken { return p.currentCredentials }
 func (p *stdOAuth1Client) Realm()                         string    { return p.realm }
 func (p *stdOAuth1Client) ConsumerKey()                   string    { return p.consumerKey }
@@ -238,11 +248,7 @@ func oauth1GenerateRequest(p OAuth1Client, credentials AuthToken, headers http.H
         headers.Set("Authorization", fmt.Sprintf(`OAuth %soauth_nonce="%s",oauth_timestamp="%s",oauth_version="%s",oauth_signature_method="%s",oauth_consumer_key="%s",oauth_token="%s",oauth_signature="%s"`, oauth_realm, url.QueryEscape(oauth_nonce), url.QueryEscape(oauth_timestamp), url.QueryEscape(oauth_version), url.QueryEscape(oauth_signature_method), url.QueryEscape(oauth_consumer_key), url.QueryEscape(oauth_token), url.QueryEscape(oauth_signature)))
     }
     if method == "GET" {
-        if strings.Contains(uri, "?") {
-            finalUri = uri + "&" + v.Encode()
-        } else {
-            finalUri = uri + "?" + v.Encode()
-        }
+        finalUri = makeUrl(uri, v)
         r = nil
     } else {
         r = bytes.NewBufferString(v.Encode())
@@ -255,47 +261,47 @@ func oauth1GenerateRequest(p OAuth1Client, credentials AuthToken, headers http.H
     return req, err
 }
 
-func OAuth1MakeSyncRequest(p OAuth1Client, credentials AuthToken, headers http.Header, method, uri string, additional_params url.Values, protected bool) (*http.Response, os.Error) {
+func OAuth1MakeSyncRequest(p OAuth1Client, credentials AuthToken, headers http.Header, method, uri string, additional_params url.Values, protected bool) (*http.Response, *http.Request, os.Error) {
     req, err := oauth1GenerateRequest(p, credentials, headers, method, uri, additional_params, protected)
     if err != nil {
-        return nil, err
+        return nil, req, err
     }
-    return makeRequest(req)
+    return makeRequest(p.Client(), req)
 }
 
-func MakeAsyncRequest(req *http.Request, handler RequestHandler) {
-    resp, err := makeRequest(req)
+func MakeAsyncRequest(p OAuth1Client, req *http.Request, handler RequestHandler) {
+    resp, _, err := makeRequest(p.Client(), req)
     if handler != nil {
-        handler(resp, err, req)
+        handler(resp, req, err)
     }
 }
 
-func (p *stdOAuth1Client) extractCredentials(resp *http.Response) (AuthToken, string, os.Error) {
-    if resp == nil {
-        return nil, "", nil
-    }
-    body_bytes, err := ioutil.ReadAll(resp.Body)
-    body := string(body_bytes)
-    if err != nil {
-        return nil, body, err
-    }
-    m, err := url.ParseQuery(string(body))
-    if err != nil {
-        return nil, body, err
-    }
+func parseRequestTokenResult(p OAuth1Client, value string) (AuthToken, os.Error) {
+    return p.ParseRequestTokenResult(value)
+}
+func parseAccessTokenResult(p OAuth1Client, value string) (AuthToken, os.Error) {
+    return p.ParseAccessTokenResult(value)
+}
+
+func defaultOAuth1ParseAuthToken(value string) (AuthToken, os.Error) {
+    m, err := url.ParseQuery(value)
     var cred AuthToken
     if m != nil {
         cred = &stdAuthToken{token:m.Get("oauth_token"), secret:m.Get("oauth_token_secret")}
+    } else {
+        cred = &stdAuthToken{}
     }
-    return cred, body, nil
+    return cred, err
 }
 
-func (p *stdOAuth1Client) GetAuthToken() (AuthToken, os.Error) {
-    resp, err := OAuth1MakeSyncRequest(p, nil, nil, p.RequestUrlMethod(), p.RequestUrl(), nil, p.RequestUrlProtected())
+func getAuthToken(p OAuth1Client) (AuthToken, os.Error) {
+    resp, _, err := OAuth1MakeSyncRequest(p, nil, nil, p.RequestUrlMethod(), p.RequestUrl(), nil, p.RequestUrlProtected())
     if err != nil {
         return nil, err
     }
-    credentials, body, err := p.extractCredentials(resp)
+    body_bytes, err := ioutil.ReadAll(resp.Body)
+    body := string(body_bytes)
+    credentials, err := parseRequestTokenResult(p, body)
     if credentials != nil && len(credentials.Token()) > 0 && len(credentials.Secret()) > 0 {
         if oauth1TokenSecretMap == nil {
             oauth1TokenSecretMap = make(map[string]string)
@@ -308,7 +314,7 @@ func (p *stdOAuth1Client) GetAuthToken() (AuthToken, os.Error) {
 }
 
 
-func (p *stdOAuth1Client) RequestToken(client *http.Client, credentials AuthToken, verifier string) (AuthToken, string, os.Error) {
+func oauth1RequestToken(p OAuth1Client, client *http.Client, credentials AuthToken, verifier string) (AuthToken, string, os.Error) {
     if oauth1TokenSecretMap == nil {
         oauth1TokenSecretMap = make(map[string]string)
     }
@@ -323,8 +329,15 @@ func (p *stdOAuth1Client) RequestToken(client *http.Client, credentials AuthToke
     cred := &stdAuthToken{token:auth_token, secret:auth_secret}
     additional_params := make(url.Values)
     additional_params.Set("oauth_verifier", auth_verifier)
-    resp, err := OAuth1MakeSyncRequest(p, cred, nil, p.AccessUrlMethod(), p.AccessUrl(), additional_params, p.AccessUrlProtected())
-    c, body, err2 := p.extractCredentials(resp)
+    resp, _, err := OAuth1MakeSyncRequest(p, cred, nil, p.AccessUrlMethod(), p.AccessUrl(), additional_params, p.AccessUrlProtected())
+    var err2 os.Error
+    var body string
+    if resp != nil && resp.Body != nil {
+        var body_bytes []byte
+        body_bytes, err2 = ioutil.ReadAll(resp.Body)
+        body = string(body_bytes)
+    }
+    c, err3 := parseAccessTokenResult(p, body)
     if c != nil && len(c.Token()) > 0 && len(c.Secret()) > 0 {
         oauth1TokenSecretMap[c.Token()] = c.Secret()
     } else if err2 == nil && len(body) > 0 {
@@ -332,14 +345,25 @@ func (p *stdOAuth1Client) RequestToken(client *http.Client, credentials AuthToke
     }
     if err == nil {
         err = err2
+        if err == nil {
+            err = err3
+        }
     }
     return c, body, err
 }
 
+func (p *stdOAuth1Client) ParseRequestTokenResult(value string) (AuthToken, os.Error) {
+    return defaultOAuth1ParseAuthToken(value)
+}
+
+func (p *stdOAuth1Client) ParseAccessTokenResult(value string) (AuthToken, os.Error) {
+    return defaultOAuth1ParseAuthToken(value)
+}
+
 
 // AuthorizationURL returns the full authorization URL.
-func (c *stdOAuth1Client) AuthorizationURL(temporaryCredentials AuthToken) string {
-    authUrl := c.AuthorizationUrl()
+func oauth1GenerateAuthorizationUrl(p OAuth1Client, temporaryCredentials AuthToken) string {
+    authUrl := p.AuthorizationUrl()
     if strings.Contains(authUrl, "?") {
         return authUrl + "&oauth_token=" + string(oauthEncode(temporaryCredentials.Token()))
     }
@@ -347,20 +371,20 @@ func (c *stdOAuth1Client) AuthorizationURL(temporaryCredentials AuthToken) strin
 }
 
 
-func (p *stdOAuth1Client) GenerateRequestTokenUrl(properties Properties) string {
+func oauth1GenerateRequestTokenUrl(p OAuth1Client, properties Properties) string {
     if properties == nil {
         properties = make(Properties)
     }
-    cred, err := p.GetAuthToken()
-    log.Print("Received credentials: ", cred)
+    cred, err := getAuthToken(p)
+    log.Printf("Received credentials: %T -> %v", cred, cred)
     log.Print("Received err: ", err)
     if cred == nil || err != nil {
         return ""
     }
-    return p.AuthorizationURL(cred)
+    return oauth1GenerateAuthorizationUrl(p, cred)
 }
 
-func (p *stdOAuth1Client) RequestTokenGranted(req *http.Request) bool {
+func oauth1RequestTokenGranted(p OAuth1Client, req *http.Request) bool {
     if req == nil {
         return false
     }
@@ -371,7 +395,7 @@ func (p *stdOAuth1Client) RequestTokenGranted(req *http.Request) bool {
         return false
     }
     tempCredentials := &stdAuthToken{token:token}
-    newCredentials, _, err := p.RequestToken(nil, tempCredentials, verifier)
+    newCredentials, _, err := oauth1RequestToken(p, nil, tempCredentials, verifier)
     if err != nil || newCredentials == nil {
         return false
     }
@@ -379,7 +403,7 @@ func (p *stdOAuth1Client) RequestTokenGranted(req *http.Request) bool {
     return true
 }
 
-func (p *stdOAuth1Client) ExchangeRequestTokenForAccess(req *http.Request) os.Error {
+func oauth1ExchangeRequestTokenForAccess(p OAuth1Client, req *http.Request) os.Error {
     if req == nil {
         return os.NewError("Request cannot be nil")
     }
@@ -389,13 +413,14 @@ func (p *stdOAuth1Client) ExchangeRequestTokenForAccess(req *http.Request) os.Er
     if len(token) <= 0 || len(verifier) <= 0 {
         return os.NewError("Expected both oauth_token and oauth_verifier")
     }
-    tempCredentials := &stdAuthToken{token:token}
-    newCredentials, body, err := p.RequestToken(nil, tempCredentials, verifier)
+    secret, _ := oauth1TokenSecretMap[token]
+    tempCredentials := &stdAuthToken{token:token, secret:secret}
+    newCredentials, body, err := oauth1RequestToken(p, nil, tempCredentials, verifier)
     if err != nil {
         return err
     }
     if newCredentials != nil && len(newCredentials.Token()) > 0 && len(newCredentials.Secret()) > 0 {
-        log.Print("Setting current credentials to: ", newCredentials)
+        log.Printf("Setting current credentials to: %T -> %v", newCredentials, newCredentials)
         p.SetCurrentCredentials(newCredentials)
     } else if len(body) > 0 {
         return os.NewError(body)
@@ -403,7 +428,7 @@ func (p *stdOAuth1Client) ExchangeRequestTokenForAccess(req *http.Request) os.Er
     return nil
 }
 
-func (p *stdOAuth1Client) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error) {
+func oauth1CreateAuthorizedRequest(p OAuth1Client, method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error) {
     if len(method) <= 0 {
         method = "GET"
     }

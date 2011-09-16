@@ -15,12 +15,130 @@ import (
     "url"
 )
 
+const (
+    FACEBOOK_DATETIME_FORMAT = "2006-01-02T15:04:05-0700"
+)
+
+type FacebookAccessTokenResult interface {
+    AccessToken()   string
+    ExpiresAt()     *time.Time
+}
+
+type facebookAccessTokenResult struct {
+    accessToken     string
+    expiresAt       *time.Time
+}
+
+func (p *facebookAccessTokenResult) AccessToken() string { return p.accessToken }
+func (p *facebookAccessTokenResult) ExpiresAt() *time.Time { return p.expiresAt }
+
+type FacebookLocation interface {
+    Id()                string
+    Name()              string
+}
+
+type facebookLocation struct {
+    id                  string  `json:"id"`
+    name                string  `json:"name"`
+}
+
+func (p *facebookLocation) Id() string { return p.id }
+func (p *facebookLocation) Name() string { return p.name }
+func (p *facebookLocation) UnmarshalJSON(data []byte) os.Error {
+    props := make(Properties)
+    err := json.Unmarshal(data, &props)
+    p.id = props.GetAsString("id")
+    p.name = props.GetAsString("name")
+    return err
+}
+func (p *facebookLocation) FromJSON(props Properties) {
+    p.id = props.GetAsString("id")
+    p.name = props.GetAsString("name")
+}
+
+type FacebookUserInfoResult interface {
+    Id()                string
+    Name()              string
+    FirstName()         string
+    LastName()          string
+    Link()              string
+    Username()          string
+    Hometown()          FacebookLocation
+    Location()          FacebookLocation
+    Gender()            string
+    Email()             string
+    Timezone()          float64
+    Locale()            string
+    Verified()          bool
+    UpdatedTime()       *time.Time
+}
+
+type facebookUserInfoResult struct {
+    id                  string              `json:"id"`
+    name                string              `json:"name"`
+    firstName           string              `json:"first_name"`
+    lastName            string              `json:"last_name"`
+    link                string              `json:"link"`
+    username            string              `json:"username"`
+    hometown            facebookLocation    `json:"hometown"`
+    location            facebookLocation    `json:"location"`
+    gender              string              `json:"gender"`
+    email               string              `json:"email"`
+    timezone            float64             `json:"timezone"`
+    locale              string              `json:"locale"`
+    verified            bool                `json:"verified"`
+    updatedTime         *time.Time          `json:"updated_time"`
+}
+
+func (p *facebookUserInfoResult) Id() string { return p.id }
+func (p *facebookUserInfoResult) Name() string { return p.name }
+func (p *facebookUserInfoResult) FirstName() string { return p.firstName }
+func (p *facebookUserInfoResult) LastName() string { return p.lastName }
+func (p *facebookUserInfoResult) Link() string { return p.link }
+func (p *facebookUserInfoResult) Username() string { return p.username }
+func (p *facebookUserInfoResult) Hometown() FacebookLocation { return &p.hometown }
+func (p *facebookUserInfoResult) Location() FacebookLocation { return &p.location }
+func (p *facebookUserInfoResult) Gender() string { return p.gender }
+func (p *facebookUserInfoResult) Email() string { return p.email }
+func (p *facebookUserInfoResult) Timezone() float64 { return p.timezone }
+func (p *facebookUserInfoResult) Locale() string { return p.locale }
+func (p *facebookUserInfoResult) Verified() bool { return p.verified }
+func (p *facebookUserInfoResult) UpdatedTime() *time.Time { return p.updatedTime }
+func (p *facebookUserInfoResult) UnmarshalJSON(data []byte) os.Error {
+    props := make(Properties)
+    err := json.Unmarshal(data, &props)
+    p.id = props.GetAsString("id")
+    p.name = props.GetAsString("name")
+    p.firstName = props.GetAsString("first_name")
+    p.lastName = props.GetAsString("last_name")
+    p.link = props.GetAsString("link")
+    p.username = props.GetAsString("username")
+    p.hometown.FromJSON(props.GetAsObject("hometown"))
+    p.location.FromJSON(props.GetAsObject("location"))
+    p.gender = props.GetAsString("gender")
+    p.email = props.GetAsString("email")
+    p.timezone = props.GetAsFloat64("timezone")
+    p.locale = props.GetAsString("locale")
+    p.verified = props.GetAsBool("verified")
+    p.updatedTime = props.GetAsTime("updated_time", FACEBOOK_DATETIME_FORMAT)
+    return err
+}
+
 type FacebookClient struct {
+    client          *http.Client
     clientId        string "client_id"
     clientSecret    string "client_secret"
     redirectUri     string "redirect_uri"
     scope           string "scope"
     state           string "state"
+    accessTokenUrl              string "access_token_url"
+    accessTokenMethod           string "access_token_method"
+    authorizationCodeUrl        string "authorization_code_url"
+    authorizationCodeMethod     string "authorization_code_method"
+    refreshTokenUrl             string "refresh_token_url"
+    refreshTokenMethod          string "refresh_token_method"
+    userinfoUrl                 string "userinfo_url"
+    userinfoMethod              string "userinfo_method"
     accessToken     string "access_token"
     expiresAt       *time.Time "expires_at"
     tokenType       string "token_type"
@@ -28,7 +146,11 @@ type FacebookClient struct {
 }
 
 func NewFacebookClient() *FacebookClient {
-    return &FacebookClient{}
+    return &FacebookClient{client:new(http.Client)}
+}
+
+func (p *FacebookClient) Client() *http.Client {
+    return p.client
 }
 
 func (p *FacebookClient) Initialize(properties Properties) {
@@ -49,6 +171,30 @@ func (p *FacebookClient) Initialize(properties Properties) {
     }
     if v, ok := properties["facebook.client.state"]; ok {
         p.state = v.(string)
+    }
+    if v, ok := properties["facebook.client.access.token.url"]; ok {
+        p.accessTokenUrl = v.(string)
+    }
+    if v, ok := properties["facebook.client.access.token.method"]; ok {
+        p.accessTokenMethod = v.(string)
+    }
+    if v, ok := properties["facebook.client.authorization.code.url"]; ok {
+        p.authorizationCodeUrl = v.(string)
+    }
+    if v, ok := properties["facebook.client.authorization.code.method"]; ok {
+        p.authorizationCodeMethod = v.(string)
+    }
+    if v, ok := properties["facebook.client.refresh.token.url"]; ok {
+        p.refreshTokenUrl = v.(string)
+    }
+    if v, ok := properties["facebook.client.refresh.token.method"]; ok {
+        p.refreshTokenMethod = v.(string)
+    }
+    if v, ok := properties["facebook.client.userinfo.url"]; ok {
+        p.userinfoUrl = v.(string)
+    }
+    if v, ok := properties["facebook.client.userinfo.method"]; ok {
+        p.userinfoMethod = v.(string)
     }
     if v, ok := properties["facebook.client.access_token"]; ok {
         p.accessToken = v.(string)
@@ -96,7 +242,7 @@ func (p *FacebookClient) GenerateAuthorizationCodeUri(code string) (string, url.
     if len(p.state) > 0 {
         m.Add("state", p.state)
     }
-    return "https://graph.facebook.com/oauth/access_token?", m
+    return p.authorizationCodeUrl, m
 }
 
 func (p *FacebookClient) ReadAccessTokenFromResponse(r *http.Response, now *time.Time) os.Error {
@@ -112,18 +258,26 @@ func (p *FacebookClient) ReadAccessTokenFromResponse(r *http.Response, now *time
 func (p *FacebookClient) ReadAccessToken(body string, now *time.Time) os.Error {
     params, err := url.ParseQuery(body)
     if err != nil {
-        s := make(map[string]interface{})
+        s := make(Properties)
         if err2 := json.Unmarshal([]byte(body), &s); err2 != nil {
             log.Print("Unable to read error response: ", body)
             return err2
         }
         return os.NewError(fmt.Sprintf("%v", s))
     }
-    accessToken := params.Get("access_token")
-    expires, _ := strconv.Atof64(params.Get("expires"))
-    if len(accessToken) > 0 {
-        p.expiresAt = time.SecondsToUTC(now.Seconds() + int64(expires))
-        p.accessToken = accessToken
+    if params == nil {
+        params = make(url.Values)
+    }
+    t := &facebookAccessTokenResult{accessToken:params.Get("access_token")}
+    if len(params.Get("expires")) > 0 {
+        expiresIn, _ := strconv.Atoi64(params.Get("expires"))
+        if expiresIn >= 0 {
+            t.expiresAt = time.SecondsToUTC(now.Seconds() + expiresIn)
+        }
+    }
+    if len(t.accessToken) > 0 {
+        p.expiresAt = t.expiresAt
+        p.accessToken = t.accessToken
     }
     return nil
     
@@ -138,7 +292,7 @@ func (p *FacebookClient) HandleClientAccept(code string) os.Error {
         return err
     }
     req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-    r, err := makeRequest(req)
+    r, _, err := makeRequest(p.client, req)
     //r, err := http.PostForm(url, m)
     if err != nil {
         log.Print("Unable to retrieve generate authorization code uri")
@@ -170,14 +324,13 @@ func (p *FacebookClient) AccessToken() (string, os.Error) {
         m.Add("client_secret", p.clientSecret)
         m.Add("refresh_token", p.refreshToken)
         m.Add("grant_type", "refresh_token")
-        uri := "https://graph.facebook.com/oauth/access_token"
-        req, err := http.NewRequest("POST", uri, bytes.NewBufferString(m.Encode()))
+        req, err := http.NewRequest(p.refreshTokenMethod, p.refreshTokenUrl, bytes.NewBufferString(m.Encode()))
         if err != nil {
             log.Print("Unable to retrieve generate authorization code uri")
             return "", err
         }
         req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-        r, err := makeRequest(req)
+        r, _, err := makeRequest(p.client, req)
         //r, err := http.PostForm("https://accounts.google.com/o/oauth2/token", m)
         if err != nil {
             return "", err
@@ -222,7 +375,7 @@ func (p *FacebookClient) GenerateRequestTokenUrl(properties Properties) string {
     } else if len(p.state) > 0 {
         m.Add("state", p.state)
     }
-    return "https://www.facebook.com/dialog/oauth?" + m.Encode()
+    return makeUrl(p.accessTokenUrl, m)
 }
 
 func (p *FacebookClient) RequestTokenGranted(req *http.Request) bool {
@@ -259,16 +412,22 @@ func (p *FacebookClient) CreateAuthorizedRequest(method string, headers http.Hea
         return nil, err
     }
     query.Set("access_token", accessToken)
-    fullUrl := uri
-    if len(query) > 0 {
-        fullUrl += "?" + query.Encode()
-    }
+    fullUrl := makeUrl(uri, query)
     return http.NewRequest(method, fullUrl, r)
 }
 
-
-func (p *FacebookClient) OAuth2Client() OAuth2Client {
-    return p
+func (p *FacebookClient) UserInfo() (FacebookUserInfoResult, os.Error) {
+    req, err := p.CreateAuthorizedRequest(p.userinfoMethod, nil, p.userinfoUrl, nil, nil)
+    if err != nil {
+        return nil, err
+    }
+    result := new(facebookUserInfoResult)
+    resp, _, err := makeRequest(p.client, req)
+    if resp != nil && resp.Body != nil {
+        if err2 := json.NewDecoder(resp.Body).Decode(&result); err == nil {
+            err = err2
+        }
+    }
+    return result, err
 }
-
 

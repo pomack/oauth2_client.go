@@ -79,6 +79,11 @@ func HandleClientAccept(w http.ResponseWriter, req *http.Request) {
     var reader io.Reader = nil
     props := getProperties()
     q := req.URL.Query()
+    log.Print("=================================")
+    log.Print("Received request from User: ")
+    reqBytes, _ := http.DumpRequest(req, true)
+    log.Print(string(reqBytes))
+    log.Print("=================================")
     if site := q.Get("site"); len(site) > 0 {
         switch site {
         case "google.com":
@@ -110,7 +115,7 @@ func HandleClientAccept(w http.ResponseWriter, req *http.Request) {
         io.WriteString(w, err.String())
         return
     }
-    r, err2 := oauth2_client.AuthorizedRequest(c, method, headers, uri, query, reader)
+    r, _, err2 := oauth2_client.AuthorizedRequest(c, method, headers, uri, query, reader)
     if err2 != nil {
         w.Header().Set("Content-Type", "text/plain")
         w.WriteHeader(500)

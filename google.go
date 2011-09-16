@@ -18,15 +18,22 @@ const (
 )
 
 type GoogleClient struct {
-    clientId        string "client_id"
-    clientSecret    string "client_secret"
-    redirectUri     string "redirect_uri"
-    scope           string "scope"
-    state           string "state"
-    accessToken     string "access_token"
-    expiresAt       *time.Time "expires_at"
-    tokenType       string "token_type"
-    refreshToken    string "refresh_token"
+    client                      *http.Client
+    clientId                    string "client_id"
+    clientSecret                string "client_secret"
+    redirectUri                 string "redirect_uri"
+    scope                       string "scope"
+    state                       string "state"
+    accessTokenUrl              string "access_token_url"
+    accessTokenMethod           string "access_token_method"
+    authorizationCodeUrl        string "authorization_code_url"
+    authorizationCodeMethod     string "authorization_code_method"
+    refreshTokenUrl             string "refresh_token_url"
+    refreshTokenMethod          string "refresh_token_method"
+    accessToken                 string "access_token"
+    expiresAt                   *time.Time "expires_at"
+    tokenType                   string "token_type"
+    refreshToken                string "refresh_token"
 }
 
 type googleAuthorizationCodeResponse struct {
@@ -37,7 +44,11 @@ type googleAuthorizationCodeResponse struct {
 }
 
 func NewGoogleClient() *GoogleClient {
-    return &GoogleClient{}
+    return &GoogleClient{client:new(http.Client)}
+}
+
+func (p *GoogleClient) Client() *http.Client {
+    return p.client
 }
 
 func (p *GoogleClient) Initialize(properties Properties) {
@@ -58,6 +69,24 @@ func (p *GoogleClient) Initialize(properties Properties) {
     }
     if v, ok := properties["google.client.state"]; ok {
         p.state = v.(string)
+    }
+    if v, ok := properties["google.client.access.token.url"]; ok {
+        p.accessTokenUrl = v.(string)
+    }
+    if v, ok := properties["google.client.access.token.method"]; ok {
+        p.accessTokenMethod = v.(string)
+    }
+    if v, ok := properties["google.client.authorization.code.url"]; ok {
+        p.authorizationCodeUrl = v.(string)
+    }
+    if v, ok := properties["google.client.authorization.code.method"]; ok {
+        p.authorizationCodeMethod = v.(string)
+    }
+    if v, ok := properties["google.client.refresh.token.url"]; ok {
+        p.refreshTokenUrl = v.(string)
+    }
+    if v, ok := properties["google.client.refresh.token.method"]; ok {
+        p.refreshTokenMethod = v.(string)
     }
     if v, ok := properties["google.client.access_token"]; ok {
         p.accessToken = v.(string)
@@ -90,24 +119,6 @@ func (p *GoogleClient) SetState(state string) {
     p.state = state
 }
 
-/*
-func (p *GoogleClient) GenerateRetrieveAccessTokenUri() string {
-    m := make(url.Values)
-    m.Add("response_type", "code")
-    m.Add("client_id", p.clientId)
-    if len(p.redirectUri) > 0 {
-        m.Add("redirect_uri", p.redirectUri)
-    }
-    if len(p.scope) > 0 {
-        m.Add("scope", p.scope)
-    }
-    if len(p.state) > 0 {
-        m.Add("state", p.state)
-    }
-    return "https://accounts.google.com/o/oauth2/auth?" + m.Encode()
-}
-*/
-
 func (p *GoogleClient) GenerateAuthorizationCodeUri(code string) (string, url.Values) {
     m := make(url.Values)
     m.Add("grant_type", "authorization_code")
@@ -123,27 +134,27 @@ func (p *GoogleClient) GenerateAuthorizationCodeUri(code string) (string, url.Va
     if len(p.state) > 0 {
         m.Add("state", p.state)
     }
-    return "https://accounts.google.com/o/oauth2/token?", m
+    return p.authorizationCodeUrl, m
 }
 
-func (p *GoogleClient) HandleClientAccept(code string) os.Error {
+func (p *GoogleClient) handleClientAccept(code string) os.Error {
     now := time.UTC()
     url, m := p.GenerateAuthorizationCodeUri(code)
-    req, err := http.NewRequest("POST", url, bytes.NewBufferString(m.Encode()))
+    req, err := http.NewRequest(p.authorizationCodeMethod, url, bytes.NewBufferString(m.Encode()))
     if err != nil {
         log.Print("Unable to retrieve generate authorization code uri")
         return err
     }
     req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-    r, err := makeRequest(req)
+    r, _, err := makeRequest(p.client, req)
     //r, err := http.PostForm(url, m)
     if err != nil {
         log.Print("Unable to retrieve generate authorization code uri")
         return err
     }
-    decoder := json.NewDecoder(r.Body)
     var s googleAuthorizationCodeResponse
-    err2 := decoder.Decode(&s)
+    err2 := json.NewDecoder(r.Body).Decode(&s)
+    log.Printf("Loaded response %T -> %v", s, s)
     if err2 != nil {
         log.Print("Unable to decode the response from ", r.Body)
         return err2
@@ -156,7 +167,7 @@ func (p *GoogleClient) HandleClientAccept(code string) os.Error {
     return nil
 }
 
-func (p *GoogleClient) HandleClientAcceptRequest(req *http.Request) os.Error {
+func (p *GoogleClient) handleClientAcceptRequest(req *http.Request) os.Error {
     q := req.URL.Query()
     error := q.Get("error")
     if len(error) > 0 {
@@ -168,7 +179,7 @@ func (p *GoogleClient) HandleClientAcceptRequest(req *http.Request) os.Error {
         log.Print("Received no code in client accept request")
         return os.NewError("Expected URL parameter \"code\" in request but not found")
     }
-    return p.HandleClientAccept(code)
+    return p.handleClientAccept(code)
 }
 
 func (p *GoogleClient) AccessToken() (string, os.Error) {
@@ -179,20 +190,19 @@ func (p *GoogleClient) AccessToken() (string, os.Error) {
         m.Add("client_secret", p.clientSecret)
         m.Add("refresh_token", p.refreshToken)
         m.Add("grant_type", "refresh_token")
-        uri := "https://accounts.google.com/o/oauth2/token"
-        req, err := http.NewRequest("POST", uri, bytes.NewBufferString(m.Encode()))
+        req, err := http.NewRequest(p.refreshTokenMethod, p.refreshTokenUrl, bytes.NewBufferString(m.Encode()))
         if err != nil {
             return "", err
         }
         req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-        r, err := makeRequest(req)
+        r, _, err := makeRequest(p.client, req)
         //r, err := http.PostForm(uri, m)
         if err != nil {
             return "", err
         }
-        decoder := json.NewDecoder(r.Body)
         var s googleAuthorizationCodeResponse
-        err2 := decoder.Decode(&s)
+        err2 := json.NewDecoder(r.Body).Decode(&s)
+        log.Printf("Loaded response %T -> %v", s, s)
         if err2 != nil {
             return "", err2
         }
@@ -237,11 +247,11 @@ func (p *GoogleClient) GenerateRequestTokenUrl(properties Properties) string {
     } else if len(p.state) > 0 {
         m.Add("state", p.state)
     }
-    return "https://accounts.google.com/o/oauth2/auth?" + m.Encode()
+    return makeUrl(p.accessTokenUrl, m)
 }
 
 func (p *GoogleClient) RequestTokenGranted(req *http.Request) bool {
-    if err := p.HandleClientAcceptRequest(req); err != nil {
+    if err := p.handleClientAcceptRequest(req); err != nil {
         log.Print("Error in client accept request: ", err.String())
         return false
     }
@@ -250,7 +260,7 @@ func (p *GoogleClient) RequestTokenGranted(req *http.Request) bool {
 
 func (p *GoogleClient) ExchangeRequestTokenForAccess(req *http.Request) os.Error {
     if len(p.refreshToken) <= 0 {
-        if err := p.HandleClientAcceptRequest(req); err != nil {
+        if err := p.handleClientAcceptRequest(req); err != nil {
             return err
         }
     }
@@ -273,17 +283,12 @@ func (p *GoogleClient) CreateAuthorizedRequest(method string, headers http.Heade
     if err != nil {
         return nil, err
     }
-    query.Set("access_token", accessToken)
-    fullUrl := uri
-    if len(query) > 0 {
-        fullUrl += "?" + query.Encode()
+    headers.Set("Authorization", "Bearer " + accessToken)
+    fullUrl := makeUrl(uri, query)
+    req, err := http.NewRequest(method, fullUrl, r)
+    if req != nil {
+        req.Header = headers
     }
-    return http.NewRequest(method, fullUrl, r)
+    return req, err
 }
-
-
-func (p *GoogleClient) OAuth2Client() OAuth2Client {
-    return p
-}
-
 
