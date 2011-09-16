@@ -7,6 +7,7 @@ import (
     "json"
     "log"
     "os"
+    "strings"
     "url"
 )
 
@@ -19,11 +20,12 @@ const (
     <body>
         <h1>OAuth Test Homepage</h1>
         <p>
+            <a href="/facebook">Test Facebook OAuth</a><br/>
             <a href="/google">Test Google OAuth</a><br/>
             <a href="/linkedin">Test LinkedIn OAuth</a><br/>
+            <a href="/smugmug">Test SmugMug OAuth</a><br/>
             <a href="/twitter">Test Twitter OAuth</a><br/>
             <a href="/yahoo">Test Yahoo! OAuth</a><br/>
-            <a href="/facebook">Test Facebook OAuth</a><br/>
         </p>
     </body>
 </html>`
@@ -45,6 +47,11 @@ func HandleGenericOauthRequest(c oauth2_client.OAuth2Client, w http.ResponseWrit
     }
 }
 
+func HandleFacebookOauthRequest(w http.ResponseWriter, req *http.Request) {
+    c := NewFacebookOauth2ClientTester(getProperties())
+    HandleGenericOauthRequest(c, w, req)
+}
+
 func HandleGoogleOauthRequest(w http.ResponseWriter, req *http.Request) {
     c := NewGoogleOauth2ClientTester(getProperties())
     HandleGenericOauthRequest(c, w, req)
@@ -55,6 +62,11 @@ func HandleLinkedInOauthRequest(w http.ResponseWriter, req *http.Request) {
     HandleGenericOauthRequest(c, w, req)
 }
 
+func HandleSmugMugOauthRequest(w http.ResponseWriter, req *http.Request) {
+    c := NewSmugMugOauth2ClientTester(getProperties())
+    HandleGenericOauthRequest(c, w, req)
+}
+
 func HandleTwitterOauthRequest(w http.ResponseWriter, req *http.Request) {
     c := NewTwitterOauth2ClientTester(getProperties())
     HandleGenericOauthRequest(c, w, req)
@@ -62,11 +74,6 @@ func HandleTwitterOauthRequest(w http.ResponseWriter, req *http.Request) {
 
 func HandleYahooOauthRequest(w http.ResponseWriter, req *http.Request) {
     c := NewYahooOauth2ClientTester(getProperties())
-    HandleGenericOauthRequest(c, w, req)
-}
-
-func HandleFacebookOauthRequest(w http.ResponseWriter, req *http.Request) {
-    c := NewFacebookOauth2ClientTester(getProperties())
     HandleGenericOauthRequest(c, w, req)
 }
 
@@ -85,22 +92,36 @@ func HandleClientAccept(w http.ResponseWriter, req *http.Request) {
     log.Print(string(reqBytes))
     log.Print("=================================")
     if site := q.Get("site"); len(site) > 0 {
+        if index := strings.Index(site, "?"); index >= 0 {
+            site = site[0:index]
+        }
         switch site {
+        case "facebook.com":
+            c = NewFacebookOauth2ClientTester(props)
+            uri = props.GetAsString("facebook.client.test_url")
         case "google.com":
             c = NewGoogleOauth2ClientTester(props)
             uri = props.GetAsString("google.client.test_url")
         case "linkedin.com":
             c = NewLinkedInOauth2ClientTester(props)
             uri = props.GetAsString("linkedin.client.test_url")
+        case "smugmug.com":
+            // smugmug doesn't support query strings properly
+            newRawUrl := strings.Replace(req.RawURL, "site=smugmug.com?", "site=smugmug.com&", 1)
+            newUrl, _ := url.Parse(newRawUrl)
+            if newUrl != nil {
+                req.URL = newUrl
+                req.RawURL = newRawUrl
+                q = newUrl.Query()
+            }
+            c = NewSmugMugOauth2ClientTester(props)
+            uri = props.GetAsString("smugmug.client.test_url")
         case "twitter.com":
             c = NewTwitterOauth2ClientTester(props)
             uri = props.GetAsString("twitter.client.test_url")
         case "yahoo.com":
             c = NewYahooOauth2ClientTester(props)
             uri = props.GetAsString("yahoo.client.test_url")
-        case "facebook.com":
-            c = NewFacebookOauth2ClientTester(props)
-            uri = props.GetAsString("facebook.client.test_url")
         default:
             log.Fatal("Unable to determine OAuth2 client to handle response: ", req.URL.String())
         }
@@ -163,11 +184,12 @@ func readPropertiesFile(filename string) (oauth2_client.Properties, os.Error) {
 
 func main() {
     http.HandleFunc("/auth/oauth2/oauth2callback", HandleClientAccept)
+    http.HandleFunc("/facebook", HandleFacebookOauthRequest)
     http.HandleFunc("/google", HandleGoogleOauthRequest)
     http.HandleFunc("/linkedin", HandleLinkedInOauthRequest)
+    http.HandleFunc("/smugmug", HandleSmugMugOauthRequest)
     http.HandleFunc("/twitter", HandleTwitterOauthRequest)
     http.HandleFunc("/yahoo", HandleYahooOauthRequest)
-    http.HandleFunc("/facebook", HandleFacebookOauthRequest)
     http.HandleFunc("/", HandlePage)
     log.Print("About to start serving on port 8000")
     err := http.ListenAndServe(":8000", nil)

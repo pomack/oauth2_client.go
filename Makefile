@@ -5,6 +5,7 @@ GOFILES=\
     facebook.go\
     google.go\
     linkedin.go\
+    smugmug.go\
     twitter.go\
     yahoo.go\
     oauth1_client.go\

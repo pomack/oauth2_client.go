@@ -328,7 +328,9 @@ func oauth1RequestToken(p OAuth1Client, client *http.Client, credentials AuthTok
     log.Print("Using auth_token: ", auth_token, ", auth_secret: ", auth_secret, ", oauth_verifier: ", auth_verifier)
     cred := &stdAuthToken{token:auth_token, secret:auth_secret}
     additional_params := make(url.Values)
-    additional_params.Set("oauth_verifier", auth_verifier)
+    if len(auth_verifier) > 0 {
+        additional_params.Set("oauth_verifier", auth_verifier)
+    }
     resp, _, err := OAuth1MakeSyncRequest(p, cred, nil, p.AccessUrlMethod(), p.AccessUrl(), additional_params, p.AccessUrlProtected())
     var err2 os.Error
     var body string
@@ -391,7 +393,8 @@ func oauth1RequestTokenGranted(p OAuth1Client, req *http.Request) bool {
     q := req.URL.Query()
     token := q.Get("oauth_token")
     verifier := q.Get("oauth_verifier")
-    if len(token) <= 0 || len(verifier) <= 0 {
+    // apparently smugmug.com doesn't specify an oauth_verifier, so don't require it
+    if len(token) <= 0 {
         return false
     }
     tempCredentials := &stdAuthToken{token:token}
@@ -410,8 +413,9 @@ func oauth1ExchangeRequestTokenForAccess(p OAuth1Client, req *http.Request) os.E
     q := req.URL.Query()
     token := q.Get("oauth_token")
     verifier := q.Get("oauth_verifier")
-    if len(token) <= 0 || len(verifier) <= 0 {
-        return os.NewError("Expected both oauth_token and oauth_verifier")
+    // apparently smugmug.com doesn't specify an oauth_verifier, so don't require it
+    if len(token) <= 0 {
+        return os.NewError("Expected oauth_token")
     }
     secret, _ := oauth1TokenSecretMap[token]
     tempCredentials := &stdAuthToken{token:token, secret:secret}
