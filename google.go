@@ -13,23 +13,70 @@ import (
     "url"
 )
 
-const (
-    GOOGLE_SCOPE_FEEDS = "https://www.google.com/m8/feeds/"
-)
+type GoogleUserInfoResult interface {
+    UserInfo
+    Id()                string
+    Name()              string
+    FirstName()         string
+    LastName()          string
+    Link()              string
+    Hometown()          FacebookLocation
+    Location()          FacebookLocation
+    Gender()            string
+    Email()             string
+    Timezone()          float64
+    Locale()            string
+    Verified()          bool
+    UpdatedTime()       *time.Time
+}
 
-type GoogleClient struct {
+type googleUserInfoResult struct {
+    id                  string              `json:"id"`
+    name                string              `json:"name"`
+    email               string              `json:"email"`
+    uri                 string              `json:"link"`
+    updated             *time.Time          `json:"updated"`
+}
+
+func (p *googleUserInfoResult) Guid() string { return p.id }
+func (p *googleUserInfoResult) Username() string { return p.id }
+func (p *googleUserInfoResult) GivenName() string { return p.name }
+func (p *googleUserInfoResult) FamilyName() string { return p.name }
+func (p *googleUserInfoResult) DisplayName() string { return p.name }
+func (p *googleUserInfoResult) Url() string { return p.uri }
+func (p *googleUserInfoResult) Id() string { return p.id }
+func (p *googleUserInfoResult) Name() string { return p.name }
+func (p *googleUserInfoResult) Updated() *time.Time { return p.updated }
+func (p *googleUserInfoResult) UnmarshalJSON(data []byte) os.Error {
+    props := make(Properties)
+    err := json.Unmarshal(data, &props)
+    p.FromJSON(props)
+    return err
+}
+func (p *googleUserInfoResult) FromJSON(props Properties) {
+    p.id = props.GetAsObject("id").GetAsString("$t")
+    authorArr := props.GetAsArray("author")
+    if len(authorArr) > 0 {
+        author := Properties(authorArr[0].(map[string]interface{}))
+        p.name = author.GetAsObject("name").GetAsString("$t")
+        p.email = author.GetAsObject("email").GetAsString("$t")
+    }
+    for _, l := range props.GetAsArray("link") {
+        m := Properties(l.(map[string]interface{}))
+        if m.GetAsString("rel") == _GOOGLE_USERINFO_FEED_REL {
+            p.uri = m.GetAsString("href")
+        }
+    }
+    p.updated = props.GetAsObject("updated").GetAsTime("$t", GOOGLE_DATETIME_FORMAT)
+}
+
+type googleClient struct {
     client                      *http.Client
     clientId                    string "client_id"
     clientSecret                string "client_secret"
     redirectUri                 string "redirect_uri"
     scope                       string "scope"
     state                       string "state"
-    accessTokenUrl              string "access_token_url"
-    accessTokenMethod           string "access_token_method"
-    authorizationCodeUrl        string "authorization_code_url"
-    authorizationCodeMethod     string "authorization_code_method"
-    refreshTokenUrl             string "refresh_token_url"
-    refreshTokenMethod          string "refresh_token_method"
     accessToken                 string "access_token"
     expiresAt                   *time.Time "expires_at"
     tokenType                   string "token_type"
@@ -43,15 +90,16 @@ type googleAuthorizationCodeResponse struct {
     RefreshToken    string  `json:"refresh_token"`
 }
 
-func NewGoogleClient() *GoogleClient {
-    return &GoogleClient{client:new(http.Client)}
+func NewGoogleClient() *googleClient {
+    return &googleClient{client:new(http.Client)}
 }
 
-func (p *GoogleClient) Client() *http.Client {
+func (p *googleClient) Client() *http.Client {
     return p.client
 }
 
-func (p *GoogleClient) Initialize(properties Properties) {
+func (p *googleClient) ServiceId() string { return "google.com" }
+func (p *googleClient) Initialize(properties Properties) {
     if properties == nil || len(properties) <= 0 {
         return
     }
@@ -70,24 +118,6 @@ func (p *GoogleClient) Initialize(properties Properties) {
     if v, ok := properties["google.client.state"]; ok {
         p.state = v.(string)
     }
-    if v, ok := properties["google.client.access.token.url"]; ok {
-        p.accessTokenUrl = v.(string)
-    }
-    if v, ok := properties["google.client.access.token.method"]; ok {
-        p.accessTokenMethod = v.(string)
-    }
-    if v, ok := properties["google.client.authorization.code.url"]; ok {
-        p.authorizationCodeUrl = v.(string)
-    }
-    if v, ok := properties["google.client.authorization.code.method"]; ok {
-        p.authorizationCodeMethod = v.(string)
-    }
-    if v, ok := properties["google.client.refresh.token.url"]; ok {
-        p.refreshTokenUrl = v.(string)
-    }
-    if v, ok := properties["google.client.refresh.token.method"]; ok {
-        p.refreshTokenMethod = v.(string)
-    }
     if v, ok := properties["google.client.access_token"]; ok {
         p.accessToken = v.(string)
     }
@@ -103,23 +133,23 @@ func (p *GoogleClient) Initialize(properties Properties) {
     }
 }
 
-func (p *GoogleClient) Scope() string {
+func (p *googleClient) Scope() string {
     return p.scope
 }
 
-func (p *GoogleClient) SetScope(scope string) {
+func (p *googleClient) SetScope(scope string) {
     p.scope = scope
 }
 
-func (p *GoogleClient) State() string {
+func (p *googleClient) State() string {
     return p.state
 }
 
-func (p *GoogleClient) SetState(state string) {
+func (p *googleClient) SetState(state string) {
     p.state = state
 }
 
-func (p *GoogleClient) GenerateAuthorizationCodeUri(code string) (string, url.Values) {
+func (p *googleClient) GenerateAuthorizationCodeUri(code string) (string, url.Values) {
     m := make(url.Values)
     m.Add("grant_type", "authorization_code")
     m.Add("client_id", p.clientId)
@@ -134,13 +164,13 @@ func (p *GoogleClient) GenerateAuthorizationCodeUri(code string) (string, url.Va
     if len(p.state) > 0 {
         m.Add("state", p.state)
     }
-    return p.authorizationCodeUrl, m
+    return _GOOGLE_AUTHORIZATION_CODE_URL, m
 }
 
-func (p *GoogleClient) handleClientAccept(code string) os.Error {
+func (p *googleClient) handleClientAccept(code string) os.Error {
     now := time.UTC()
     url, m := p.GenerateAuthorizationCodeUri(code)
-    req, err := http.NewRequest(p.authorizationCodeMethod, url, bytes.NewBufferString(m.Encode()))
+    req, err := http.NewRequest(_GOOGLE_AUTHORIZATION_CODE_METHOD, url, bytes.NewBufferString(m.Encode()))
     if err != nil {
         log.Print("Unable to retrieve generate authorization code uri")
         return err
@@ -167,7 +197,7 @@ func (p *GoogleClient) handleClientAccept(code string) os.Error {
     return nil
 }
 
-func (p *GoogleClient) handleClientAcceptRequest(req *http.Request) os.Error {
+func (p *googleClient) handleClientAcceptRequest(req *http.Request) os.Error {
     q := req.URL.Query()
     error := q.Get("error")
     if len(error) > 0 {
@@ -182,7 +212,7 @@ func (p *GoogleClient) handleClientAcceptRequest(req *http.Request) os.Error {
     return p.handleClientAccept(code)
 }
 
-func (p *GoogleClient) AccessToken() (string, os.Error) {
+func (p *googleClient) AccessToken() (string, os.Error) {
     now := time.UTC()
     if p.expiresAt == nil || p.expiresAt.Seconds() <= now.Seconds() {
         m := make(url.Values)
@@ -190,7 +220,7 @@ func (p *GoogleClient) AccessToken() (string, os.Error) {
         m.Add("client_secret", p.clientSecret)
         m.Add("refresh_token", p.refreshToken)
         m.Add("grant_type", "refresh_token")
-        req, err := http.NewRequest(p.refreshTokenMethod, p.refreshTokenUrl, bytes.NewBufferString(m.Encode()))
+        req, err := http.NewRequest(_GOOGLE_REFRESH_TOKEN_METHOD, _GOOGLE_REFRESH_TOKEN_URL, bytes.NewBufferString(m.Encode()))
         if err != nil {
             return "", err
         }
@@ -215,7 +245,7 @@ func (p *GoogleClient) AccessToken() (string, os.Error) {
     return p.accessToken, nil
 }
 
-func (p *GoogleClient) GenerateRequestTokenUrl(properties Properties) string {
+func (p *googleClient) GenerateRequestTokenUrl(properties Properties) string {
     if properties == nil {
         properties = make(Properties)
     }
@@ -247,10 +277,10 @@ func (p *GoogleClient) GenerateRequestTokenUrl(properties Properties) string {
     } else if len(p.state) > 0 {
         m.Add("state", p.state)
     }
-    return makeUrl(p.accessTokenUrl, m)
+    return makeUrl(_GOOGLE_ACCESS_TOKEN_URL, m)
 }
 
-func (p *GoogleClient) RequestTokenGranted(req *http.Request) bool {
+func (p *googleClient) RequestTokenGranted(req *http.Request) bool {
     if err := p.handleClientAcceptRequest(req); err != nil {
         log.Print("Error in client accept request: ", err.String())
         return false
@@ -258,7 +288,7 @@ func (p *GoogleClient) RequestTokenGranted(req *http.Request) bool {
     return true
 }
 
-func (p *GoogleClient) ExchangeRequestTokenForAccess(req *http.Request) os.Error {
+func (p *googleClient) ExchangeRequestTokenForAccess(req *http.Request) os.Error {
     if len(p.refreshToken) <= 0 {
         if err := p.handleClientAcceptRequest(req); err != nil {
             return err
@@ -268,7 +298,7 @@ func (p *GoogleClient) ExchangeRequestTokenForAccess(req *http.Request) os.Error
     return err
 }
 
-func (p *GoogleClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error) {
+func (p *googleClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error) {
     if len(method) <= 0 {
         method = "GET"
     }
@@ -290,5 +320,22 @@ func (p *GoogleClient) CreateAuthorizedRequest(method string, headers http.Heade
         req.Header = headers
     }
     return req, err
+}
+
+func (p *googleClient) RetrieveUserInfo() (UserInfo, os.Error) {
+    req, err := p.CreateAuthorizedRequest(_GOOGLE_USERINFO_METHOD, nil, _GOOGLE_USERINFO_URL, nil, nil)
+    if err != nil {
+        return nil, err
+    }
+    result := new(googleUserInfoResult)
+    resp, _, err := makeRequest(p.client, req)
+    if resp != nil && resp.Body != nil {
+        props := make(Properties)
+        if err2 := json.NewDecoder(resp.Body).Decode(&props); err == nil {
+            err = err2
+        }
+        result.FromJSON(props.GetAsObject("feed"))
+    }
+    return result, err
 }
 

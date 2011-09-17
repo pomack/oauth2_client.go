@@ -15,10 +15,6 @@ import (
     "url"
 )
 
-const (
-    FACEBOOK_DATETIME_FORMAT = "2006-01-02T15:04:05-0700"
-)
-
 type FacebookAccessTokenResult interface {
     AccessToken()   string
     ExpiresAt()     *time.Time
@@ -57,12 +53,12 @@ func (p *facebookLocation) FromJSON(props Properties) {
 }
 
 type FacebookUserInfoResult interface {
+    UserInfo
     Id()                string
     Name()              string
     FirstName()         string
     LastName()          string
     Link()              string
-    Username()          string
     Hometown()          FacebookLocation
     Location()          FacebookLocation
     Gender()            string
@@ -90,12 +86,17 @@ type facebookUserInfoResult struct {
     updatedTime         *time.Time          `json:"updated_time"`
 }
 
+func (p *facebookUserInfoResult) Guid() string { return p.id }
+func (p *facebookUserInfoResult) Username() string { return p.username }
+func (p *facebookUserInfoResult) GivenName() string { return p.firstName }
+func (p *facebookUserInfoResult) FamilyName() string { return p.lastName }
+func (p *facebookUserInfoResult) DisplayName() string { return p.name }
+func (p *facebookUserInfoResult) Url() string { return p.link }
 func (p *facebookUserInfoResult) Id() string { return p.id }
 func (p *facebookUserInfoResult) Name() string { return p.name }
 func (p *facebookUserInfoResult) FirstName() string { return p.firstName }
 func (p *facebookUserInfoResult) LastName() string { return p.lastName }
 func (p *facebookUserInfoResult) Link() string { return p.link }
-func (p *facebookUserInfoResult) Username() string { return p.username }
 func (p *facebookUserInfoResult) Hometown() FacebookLocation { return &p.hometown }
 func (p *facebookUserInfoResult) Location() FacebookLocation { return &p.location }
 func (p *facebookUserInfoResult) Gender() string { return p.gender }
@@ -124,36 +125,29 @@ func (p *facebookUserInfoResult) UnmarshalJSON(data []byte) os.Error {
     return err
 }
 
-type FacebookClient struct {
+type facebookClient struct {
     client          *http.Client
     clientId        string "client_id"
     clientSecret    string "client_secret"
     redirectUri     string "redirect_uri"
     scope           string "scope"
     state           string "state"
-    accessTokenUrl              string "access_token_url"
-    accessTokenMethod           string "access_token_method"
-    authorizationCodeUrl        string "authorization_code_url"
-    authorizationCodeMethod     string "authorization_code_method"
-    refreshTokenUrl             string "refresh_token_url"
-    refreshTokenMethod          string "refresh_token_method"
-    userinfoUrl                 string "userinfo_url"
-    userinfoMethod              string "userinfo_method"
     accessToken     string "access_token"
     expiresAt       *time.Time "expires_at"
     tokenType       string "token_type"
     refreshToken    string "refresh_token"
 }
 
-func NewFacebookClient() *FacebookClient {
-    return &FacebookClient{client:new(http.Client)}
+func NewFacebookClient() *facebookClient {
+    return &facebookClient{client:new(http.Client)}
 }
 
-func (p *FacebookClient) Client() *http.Client {
+func (p *facebookClient) ServiceId() string { return "facebook.com" }
+func (p *facebookClient) Client() *http.Client {
     return p.client
 }
 
-func (p *FacebookClient) Initialize(properties Properties) {
+func (p *facebookClient) Initialize(properties Properties) {
     if properties == nil || len(properties) <= 0 {
         return
     }
@@ -172,30 +166,6 @@ func (p *FacebookClient) Initialize(properties Properties) {
     if v, ok := properties["facebook.client.state"]; ok {
         p.state = v.(string)
     }
-    if v, ok := properties["facebook.client.access.token.url"]; ok {
-        p.accessTokenUrl = v.(string)
-    }
-    if v, ok := properties["facebook.client.access.token.method"]; ok {
-        p.accessTokenMethod = v.(string)
-    }
-    if v, ok := properties["facebook.client.authorization.code.url"]; ok {
-        p.authorizationCodeUrl = v.(string)
-    }
-    if v, ok := properties["facebook.client.authorization.code.method"]; ok {
-        p.authorizationCodeMethod = v.(string)
-    }
-    if v, ok := properties["facebook.client.refresh.token.url"]; ok {
-        p.refreshTokenUrl = v.(string)
-    }
-    if v, ok := properties["facebook.client.refresh.token.method"]; ok {
-        p.refreshTokenMethod = v.(string)
-    }
-    if v, ok := properties["facebook.client.userinfo.url"]; ok {
-        p.userinfoUrl = v.(string)
-    }
-    if v, ok := properties["facebook.client.userinfo.method"]; ok {
-        p.userinfoMethod = v.(string)
-    }
     if v, ok := properties["facebook.client.access_token"]; ok {
         p.accessToken = v.(string)
     }
@@ -211,23 +181,23 @@ func (p *FacebookClient) Initialize(properties Properties) {
     }
 }
 
-func (p *FacebookClient) Scope() string {
+func (p *facebookClient) Scope() string {
     return p.scope
 }
 
-func (p *FacebookClient) SetScope(scope string) {
+func (p *facebookClient) SetScope(scope string) {
     p.scope = scope
 }
 
-func (p *FacebookClient) State() string {
+func (p *facebookClient) State() string {
     return p.state
 }
 
-func (p *FacebookClient) SetState(state string) {
+func (p *facebookClient) SetState(state string) {
     p.state = state
 }
 
-func (p *FacebookClient) GenerateAuthorizationCodeUri(code string) (string, url.Values) {
+func (p *facebookClient) GenerateAuthorizationCodeUri(code string) (string, url.Values) {
     m := make(url.Values)
     //m.Add("grant_type", "authorization_code")
     m.Add("client_id", p.clientId)
@@ -242,10 +212,10 @@ func (p *FacebookClient) GenerateAuthorizationCodeUri(code string) (string, url.
     if len(p.state) > 0 {
         m.Add("state", p.state)
     }
-    return p.authorizationCodeUrl, m
+    return _FACEBOOK_AUTHORIZATION_CODE_URL, m
 }
 
-func (p *FacebookClient) ReadAccessTokenFromResponse(r *http.Response, now *time.Time) os.Error {
+func (p *facebookClient) ReadAccessTokenFromResponse(r *http.Response, now *time.Time) os.Error {
     body_bytes, err := ioutil.ReadAll(r.Body)
     if err != nil {
         log.Print("Unable to read the response from ", r.Body)
@@ -255,7 +225,7 @@ func (p *FacebookClient) ReadAccessTokenFromResponse(r *http.Response, now *time
     return p.ReadAccessToken(body, now)
 }
 
-func (p *FacebookClient) ReadAccessToken(body string, now *time.Time) os.Error {
+func (p *facebookClient) ReadAccessToken(body string, now *time.Time) os.Error {
     params, err := url.ParseQuery(body)
     if err != nil {
         s := make(Properties)
@@ -283,10 +253,10 @@ func (p *FacebookClient) ReadAccessToken(body string, now *time.Time) os.Error {
     
 }
 
-func (p *FacebookClient) HandleClientAccept(code string) os.Error {
+func (p *facebookClient) HandleClientAccept(code string) os.Error {
     now := time.UTC()
     uri, m := p.GenerateAuthorizationCodeUri(code)
-    req, err := http.NewRequest("POST", uri, bytes.NewBufferString(m.Encode()))
+    req, err := http.NewRequest(_FACEBOOK_AUTHORIZATION_CODE_METHOD, uri, bytes.NewBufferString(m.Encode()))
     if err != nil {
         log.Print("Unable to retrieve generate authorization code uri")
         return err
@@ -301,7 +271,7 @@ func (p *FacebookClient) HandleClientAccept(code string) os.Error {
     return p.ReadAccessTokenFromResponse(r, now)
 }
 
-func (p *FacebookClient) HandleClientAcceptRequest(req *http.Request) os.Error {
+func (p *facebookClient) HandleClientAcceptRequest(req *http.Request) os.Error {
     q := req.URL.Query()
     error := q.Get("error")
     if len(error) > 0 {
@@ -316,7 +286,7 @@ func (p *FacebookClient) HandleClientAcceptRequest(req *http.Request) os.Error {
     return p.HandleClientAccept(code)
 }
 
-func (p *FacebookClient) AccessToken() (string, os.Error) {
+func (p *facebookClient) AccessToken() (string, os.Error) {
     now := time.UTC()
     if p.expiresAt == nil || p.expiresAt.Seconds() <= now.Seconds() {
         m := make(url.Values)
@@ -324,7 +294,7 @@ func (p *FacebookClient) AccessToken() (string, os.Error) {
         m.Add("client_secret", p.clientSecret)
         m.Add("refresh_token", p.refreshToken)
         m.Add("grant_type", "refresh_token")
-        req, err := http.NewRequest(p.refreshTokenMethod, p.refreshTokenUrl, bytes.NewBufferString(m.Encode()))
+        req, err := http.NewRequest(_FACEBOOK_REFRESH_TOKEN_METHOD, _FACEBOOK_REFRESH_TOKEN_URL, bytes.NewBufferString(m.Encode()))
         if err != nil {
             log.Print("Unable to retrieve generate authorization code uri")
             return "", err
@@ -343,7 +313,7 @@ func (p *FacebookClient) AccessToken() (string, os.Error) {
     return p.accessToken, nil
 }
 
-func (p *FacebookClient) GenerateRequestTokenUrl(properties Properties) string {
+func (p *facebookClient) GenerateRequestTokenUrl(properties Properties) string {
     if properties == nil {
         properties = make(Properties)
     }
@@ -375,10 +345,10 @@ func (p *FacebookClient) GenerateRequestTokenUrl(properties Properties) string {
     } else if len(p.state) > 0 {
         m.Add("state", p.state)
     }
-    return makeUrl(p.accessTokenUrl, m)
+    return makeUrl(_FACEBOOK_ACCESS_TOKEN_URL, m)
 }
 
-func (p *FacebookClient) RequestTokenGranted(req *http.Request) bool {
+func (p *facebookClient) RequestTokenGranted(req *http.Request) bool {
     if err := p.HandleClientAcceptRequest(req); err != nil {
         log.Print("Error in client accept request: ", err.String())
         return false
@@ -386,7 +356,7 @@ func (p *FacebookClient) RequestTokenGranted(req *http.Request) bool {
     return true
 }
 
-func (p *FacebookClient) ExchangeRequestTokenForAccess(req *http.Request) os.Error {
+func (p *facebookClient) ExchangeRequestTokenForAccess(req *http.Request) os.Error {
     if len(p.refreshToken) <= 0 {
         if err := p.HandleClientAcceptRequest(req); err != nil {
             return err
@@ -396,7 +366,7 @@ func (p *FacebookClient) ExchangeRequestTokenForAccess(req *http.Request) os.Err
     return err
 }
 
-func (p *FacebookClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error) {
+func (p *facebookClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error) {
     if len(method) <= 0 {
         method = "GET"
     }
@@ -416,8 +386,8 @@ func (p *FacebookClient) CreateAuthorizedRequest(method string, headers http.Hea
     return http.NewRequest(method, fullUrl, r)
 }
 
-func (p *FacebookClient) UserInfo() (FacebookUserInfoResult, os.Error) {
-    req, err := p.CreateAuthorizedRequest(p.userinfoMethod, nil, p.userinfoUrl, nil, nil)
+func (p *facebookClient) RetrieveUserInfo() (UserInfo, os.Error) {
+    req, err := p.CreateAuthorizedRequest(_FACEBOOK_USERINFO_METHOD, nil, _FACEBOOK_USERINFO_URL, nil, nil)
     if err != nil {
         return nil, err
     }

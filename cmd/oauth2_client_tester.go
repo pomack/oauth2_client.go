@@ -136,6 +136,11 @@ func HandleClientAccept(w http.ResponseWriter, req *http.Request) {
         io.WriteString(w, err.String())
         return
     }
+    log.Print("Retrieving User Info...")
+    userInfo, err3 := c.RetrieveUserInfo()
+    log.Printf("UserInfo: %T %v", userInfo, userInfo)
+    log.Printf("Error: %T %v", err3, err3)
+    
     r, _, err2 := oauth2_client.AuthorizedRequest(c, method, headers, uri, query, reader)
     if err2 != nil {
         w.Header().Set("Content-Type", "text/plain")

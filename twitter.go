@@ -2,8 +2,10 @@ package oauth2_client
 
 import (
     "http"
+    "json"
     "log"
     "os"
+    "strings"
     "url"
     "io"
 )
@@ -35,6 +37,90 @@ type twitterAccessTokenResult struct {
 func (p *twitterAccessTokenResult) UserId() string { return p.userId }
 func (p *twitterAccessTokenResult) ScreenName() string { return p.screenName }
 
+type TwitterUserInfoResult interface {
+    UserInfo
+    Id()                        string
+    Name()                      string
+    ScreenName()                string
+    Location()                  string
+    Lang()                      string
+    Description()               string
+    ProfileImageUrl()           string
+    ProfileBackgroundImageUrl() string
+    FavoritesCount()            int
+    FriendsCount()              int
+    FollowersCount()            int
+    StatusesCount()             int
+    TimeZone()                  string
+    UtcOffset()                 int
+    Following()                 bool
+}
+
+type twitterUserInfoResult struct {
+    id                          string  `json:"id"`
+    name                        string  `json:"name"`
+    screenName                  string  `json:"screen_name"`
+    url                         string  `json:"url"`
+    location                    string  `json:"location"`
+    lang                        string  `json:"lang"`
+    description                 string  `json:"description"`
+    profileImageUrl             string  `json:"profile_image_url"`
+    profileBackgroundImageUrl   string  `json:"profile_background_image_url"`
+    favoritesCount              int     `json:"favorites_count"`
+    friendsCount                int     `json:"friends_count"`
+    followersCount              int     `json:"followers_count"`
+    statusesCount               int     `json:"status_count"`
+    timeZone                    string  `json:"time_zone"`
+    utcOffset                   int     `json:"utc_offset"`
+    following                   bool    `json:"following"`
+}
+
+
+func (p *twitterUserInfoResult) Guid() string { return p.id }
+func (p *twitterUserInfoResult) Username() string { return p.screenName }
+func (p *twitterUserInfoResult) GivenName() string {
+    parts := strings.SplitN(p.name, " ", 2)
+    return parts[0]
+}
+func (p *twitterUserInfoResult) FamilyName() string {
+    parts := strings.Split(p.name, " ")
+    return parts[len(parts)-1]
+}
+func (p *twitterUserInfoResult) DisplayName() string { return p.name }
+func (p *twitterUserInfoResult) Id() string { return p.id }
+func (p *twitterUserInfoResult) Name() string { return p.name }
+func (p *twitterUserInfoResult) ScreenName() string { return p.screenName }
+func (p *twitterUserInfoResult) Url() string { return p.url }
+func (p *twitterUserInfoResult) Location() string { return p.location }
+func (p *twitterUserInfoResult) Lang() string { return p.lang }
+func (p *twitterUserInfoResult) Description() string { return p.description }
+func (p *twitterUserInfoResult) ProfileImageUrl() string { return p.profileImageUrl }
+func (p *twitterUserInfoResult) ProfileBackgroundImageUrl() string { return p.profileBackgroundImageUrl }
+func (p *twitterUserInfoResult) FavoritesCount() int { return p.favoritesCount }
+func (p *twitterUserInfoResult) FriendsCount() int { return p.friendsCount }
+func (p *twitterUserInfoResult) FollowersCount() int { return p.followersCount }
+func (p *twitterUserInfoResult) StatusesCount() int { return p.statusesCount }
+func (p *twitterUserInfoResult) TimeZone() string { return p.timeZone }
+func (p *twitterUserInfoResult) UtcOffset() int { return p.utcOffset }
+func (p *twitterUserInfoResult) Following() bool { return p.following }
+func (p *twitterUserInfoResult) FromJSON(props Properties) {
+    p.id = props.GetAsString("id")
+    p.name = props.GetAsString("name")
+    p.screenName = props.GetAsString("screen_name")
+    p.url = props.GetAsString("url")
+    p.location = props.GetAsString("location")
+    p.lang = props.GetAsString("lang")
+    p.description = props.GetAsString("description")
+    p.profileImageUrl = props.GetAsString("profile_image_url")
+    p.profileBackgroundImageUrl = props.GetAsString("profile_background_image_url")
+    p.favoritesCount = props.GetAsInt("favorites_count")
+    p.friendsCount = props.GetAsInt("friends_count")
+    p.followersCount = props.GetAsInt("followers_count")
+    p.statusesCount = props.GetAsInt("statuses_count")
+    p.timeZone = props.GetAsString("time_zone")
+    p.utcOffset = props.GetAsInt("utc_offset")
+    p.following = props.GetAsBool("following")
+}
 
 type twitterClient struct {
     stdOAuth1Client
@@ -44,6 +130,15 @@ func NewTwitterClient() OAuth2Client {
     return &twitterClient{}
 }
 
+func (p *twitterClient) RequestUrl() string { return _TWITTER_REQUEST_TOKEN_URL }
+func (p *twitterClient) RequestUrlMethod() string { return _TWITTER_REQUEST_TOKEN_METHOD }
+func (p *twitterClient) RequestUrlProtected() bool { return _TWITTER_REQUEST_TOKEN_PROTECTED }
+func (p *twitterClient) AccessUrl() string { return _TWITTER_ACCESS_TOKEN_URL }
+func (p *twitterClient) AccessUrlMethod() string  { return _TWITTER_ACCESS_TOKEN_METHOD }
+func (p *twitterClient) AccessUrlProtected() bool { return _TWITTER_ACCESS_TOKEN_PROTECTED }
+func (p *twitterClient) AuthorizationUrl() string { return _TWITTER_AUTHORIZATION_PATH_URL }
+func (p *twitterClient) AuthorizedResourceProtected() bool { return _TWITTER_AUTHORIZED_RESOURCE_PROTECTED }
+func (p *twitterClient) ServiceId() string { return "twitter.com" }
 func (p *twitterClient) Initialize(properties Properties) {
     if properties == nil {
         return
@@ -58,33 +153,6 @@ func (p *twitterClient) Initialize(properties Properties) {
     }
     if v := properties.GetAsString("twitter.callback_url"); len(v) > 0 {
         p.callbackUrl = v
-    }
-    if v := properties.GetAsString("twitter.oauth1.request_token_path.url"); len(v) > 0 {
-        p.requestUrl = v
-        //p.TemporaryCredentialRequestURI = v
-    }
-    if v := properties.GetAsString("twitter.oauth1.request_token_path.method"); len(v) > 0 {
-        p.requestUrlMethod = v
-    }
-    if v := properties.GetAsBool("twitter.oauth1.request_token_path.protected"); true {
-        p.requestUrlProtected = v
-    }
-    if v := properties.GetAsString("twitter.oauth1.authorization_path.url"); len(v) > 0 {
-        p.authorizationUrl = v
-        //p.ResourceOwnerAuthorizationURI = v
-    }
-    if v := properties.GetAsString("twitter.oauth1.access_token_path.url"); len(v) > 0 {
-        p.accessUrl = v
-        //p.TokenRequestURI = v
-    }
-    if v := properties.GetAsString("twitter.oauth1.access_token_path.method"); len(v) > 0 {
-        p.accessUrlMethod = v
-    }
-    if v := properties.GetAsBool("twitter.oauth1.access_token_path.protected"); true {
-        p.accessUrlProtected = v
-    }
-    if v := properties.GetAsBool("twitter.oauth1.authorized_resource.protected"); true {
-        p.authorizedResourceProtected = v
     }
     if v := properties.GetAsString("twitter.oauth1.scope"); len(v) > 0 {
         //p.Scope = v
@@ -145,7 +213,20 @@ func (p *twitterClient) ParseAccessTokenResult(value string) (AuthToken, os.Erro
     return t, err
 }
 
-
-
-
+func (p *twitterClient) RetrieveUserInfo() (UserInfo, os.Error) {
+    req, err := p.CreateAuthorizedRequest(_TWITTER_USERINFO_METHOD, nil, _TWITTER_USERINFO_URL, nil, nil)
+    if err != nil {
+        return nil, err
+    }
+    result := new(twitterUserInfoResult)
+    resp, _, err := makeRequest(p.client, req)
+    if resp != nil && resp.Body != nil {
+        props := make(Properties)
+        if err2 := json.NewDecoder(resp.Body).Decode(&props); err == nil {
+            err = err2
+        }
+        result.FromJSON(props)
+    }
+    return result, err
+}
 

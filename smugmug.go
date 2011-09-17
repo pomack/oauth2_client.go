@@ -3,16 +3,71 @@ package oauth2_client
 import (
     "http"
     "io"
+    "json"
     "log"
     "os"
     "strconv"
+    "strings"
     "time"
     "url"
 )
 
+type SmugMugUserInfoResult interface {
+    Id()            string
+    Name()          string
+    Nickname()      string
+    Url()           string
+    AccountStatus() string
+    AccountType()   string
+    FileSizeLimit() float64
+    SmugVault()     bool
+}
+
+type smugMugUserInfoResult struct {
+    id              int64   `json:"id"`
+    name            string  `json:"Name"`
+    nickname        string  `json:"NickName"`
+    url             string  `json:"URL"`
+    accountStatus   string  `json:"AccountStatus"`
+    accountType     string  `json:"AccountType"`
+    fileSizeLimit   int64   `json:"FileSizeLimit"`
+    smugVault       bool    `json:"SmugVault"`
+}
+
+func (p *smugMugUserInfoResult) Guid() string { return strconv.Itoa64(p.id) }
+func (p *smugMugUserInfoResult) Username() string { return p.nickname }
+func (p *smugMugUserInfoResult) GivenName() string {
+    parts := strings.SplitN(p.name, " ", 2)
+    return parts[0]
+}
+func (p *smugMugUserInfoResult) FamilyName() string {
+    parts := strings.Split(p.name, " ")
+    return parts[len(parts)-1]
+}
+func (p *smugMugUserInfoResult) DisplayName() string { return p.name }
+func (p *smugMugUserInfoResult) Id() int64 { return p.id }
+func (p *smugMugUserInfoResult) Name() string { return p.name }
+func (p *smugMugUserInfoResult) Nickname() string { return p.nickname }
+func (p *smugMugUserInfoResult) Url() string { return p.url }
+func (p *smugMugUserInfoResult) AccountStatus() string { return p.accountStatus }
+func (p *smugMugUserInfoResult) AccountType() string { return p.accountType }
+func (p *smugMugUserInfoResult) FileSizeLimit() int64 { return p.fileSizeLimit }
+func (p *smugMugUserInfoResult) SmugVault() bool { return p.smugVault }
+func (p *smugMugUserInfoResult) FromJSON(props Properties) {
+    log.Print("user info result from json: ", props)
+    p.id = props.GetAsInt64("id")
+    p.accountStatus = props.GetAsString("AccountStatus")
+    p.accountType = props.GetAsString("AccountType")
+    p.fileSizeLimit = props.GetAsInt64("FileSizeLimit")
+    p.name = props.GetAsString("Name")
+    p.nickname = props.GetAsString("NickName")
+    p.smugVault = props.GetAsBool("SmugVault")
+    p.url = props.GetAsString("URL")
+}
+
 type smugMugClient struct {
     stdOAuth1Client
-    appName     string "app_name"
+    appName         string "app_name"
 }
 
 type SmugMugAccessTokenResult interface {
@@ -37,6 +92,15 @@ func NewSmugMugClient() OAuth2Client {
     return &smugMugClient{}
 }
 
+func (p *smugMugClient) RequestUrl() string { return _SMUGMUG_REQUEST_TOKEN_URL }
+func (p *smugMugClient) RequestUrlMethod() string { return _SMUGMUG_REQUEST_TOKEN_METHOD }
+func (p *smugMugClient) RequestUrlProtected() bool { return _SMUGMUG_REQUEST_TOKEN_PROTECTED }
+func (p *smugMugClient) AccessUrl() string { return _SMUGMUG_ACCESS_TOKEN_URL }
+func (p *smugMugClient) AccessUrlMethod() string  { return _SMUGMUG_ACCESS_TOKEN_METHOD }
+func (p *smugMugClient) AccessUrlProtected() bool { return _SMUGMUG_ACCESS_TOKEN_PROTECTED }
+func (p *smugMugClient) AuthorizationUrl() string { return _SMUGMUG_AUTHORIZATION_PATH_URL }
+func (p *smugMugClient) AuthorizedResourceProtected() bool { return _SMUGMUG_AUTHORIZED_RESOURCE_PROTECTED }
+func (p *smugMugClient) ServiceId() string { return "smugmug.com" }
 func (p *smugMugClient) Initialize(properties Properties) {
     if properties == nil {
         return
@@ -57,33 +121,6 @@ func (p *smugMugClient) Initialize(properties Properties) {
     }
     if v := properties.GetAsString("smugmug.client.redirect_uri"); len(v) > 0 {
         p.callbackUrl = v
-    }
-    if v := properties.GetAsString("smugmug.oauth1.request_token_path.url"); len(v) > 0 {
-        p.requestUrl = v
-        //p.TemporaryCredentialRequestURI = v
-    }
-    if v := properties.GetAsString("smugmug.oauth1.request_token_path.method"); len(v) > 0 {
-        p.requestUrlMethod = v
-    }
-    if v := properties.GetAsBool("smugmug.oauth1.request_token_path.protected"); true {
-        p.requestUrlProtected = v
-    }
-    if v := properties.GetAsString("smugmug.oauth1.authorization_path.url"); len(v) > 0 {
-        p.authorizationUrl = v
-        //p.ResourceOwnerAuthorizationURI = v
-    }
-    if v := properties.GetAsString("smugmug.oauth1.access_token_path.url"); len(v) > 0 {
-        p.accessUrl = v
-        //p.TokenRequestURI = v
-    }
-    if v := properties.GetAsString("smugmug.oauth1.access_token_path.method"); len(v) > 0 {
-        p.accessUrlMethod = v
-    }
-    if v := properties.GetAsBool("smugmug.oauth1.access_token_path.protected"); true {
-        p.accessUrlProtected = v
-    }
-    if v := properties.GetAsBool("smugmug.oauth1.authorized_resource.protected"); true {
-        p.authorizedResourceProtected = v
     }
     if v := properties.GetAsString("smugmug.oauth1.scope"); len(v) > 0 {
         //p.Scope = v
@@ -138,5 +175,23 @@ func (p *smugMugClient) ParseAccessTokenResult(value string) (AuthToken, os.Erro
     log.Print("+++++++++++++++++++++++++++++++")
     return t, err
 }
+
+func (p *smugMugClient) RetrieveUserInfo() (UserInfo, os.Error) {
+    req, err := p.CreateAuthorizedRequest(_SMUGMUG_USERINFO_METHOD, nil, _SMUGMUG_USERINFO_URL, nil, nil)
+    if err != nil {
+        return nil, err
+    }
+    result := new(smugMugUserInfoResult)
+    resp, _, err := makeRequest(p.client, req)
+    if resp != nil && resp.Body != nil {
+        props := make(Properties)
+        if err2 := json.NewDecoder(resp.Body).Decode(&props); err == nil {
+            err = err2
+        }
+        result.FromJSON(props.GetAsObject("Auth").GetAsObject("User"))
+    }
+    return result, err
+}
+
 
 

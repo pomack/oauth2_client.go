@@ -3,6 +3,7 @@ package oauth2_client
 import (
     "http"
     "io"
+    "json"
     "log"
     "os"
     "strconv"
@@ -28,6 +29,36 @@ type YahooAccessTokenResult interface {
     ExpiresAt()     *time.Time
 }
 
+type YahooUserInfoIm interface {
+    Handle()            string
+    Id()                int
+    Type()              string
+}
+
+type YahooUserInfoEmail interface {
+    YahooUserInfoIm
+    IsPrimary()         bool
+}
+
+type YahooUserInfoResult interface {
+    UserInfo
+    Uri()               string
+    BirthYear()         int
+    Birthdate()         string
+    Created()           *time.Time
+    DisplayAge()        int
+    Gender()            string
+    Lang()              string
+    Location()          string
+    MemberSince()       *time.Time
+    Nickname()          string
+    ProfileUrl()        string
+    Searchable()        bool
+    TimeZone()          string
+    Updated()           *time.Time
+    IsConnected()       bool
+}
+
 type yahooRequestTokenResult struct {
     stdAuthToken
     requestAuthUrl      string
@@ -50,10 +81,131 @@ func (p *yahooAccessTokenResult) Guid() string { return p.guid }
 func (p *yahooAccessTokenResult) SessionHandle() string { return p.sessionHandle }
 func (p *yahooAccessTokenResult) ExpiresAt() *time.Time { return p.expiresAt }
 
+type yahooUserInfoIm struct {
+    handle          string  `json:"handle"`
+    id              int     `json:"id"`
+    theType         string  `json:"type"`
+}
+
+func (p *yahooUserInfoIm) Handle() string { return p.handle }
+func (p *yahooUserInfoIm) Id() int { return p.id }
+func (p *yahooUserInfoIm) Type() string { return p.theType }
+func (p *yahooUserInfoIm) FromJSON(props Properties) {
+    p.handle = props.GetAsString("handle")
+    p.id = props.GetAsInt("id")
+    p.theType = props.GetAsString("type")
+}
+
+type yahooUserInfoEmail struct {
+    yahooUserInfoIm
+    isPrimary           bool    `json:"primary"`
+}
+
+func (p *yahooUserInfoEmail) IsPrimary() bool { return p.isPrimary }
+func (p *yahooUserInfoEmail) FromJSON(props Properties) {
+    p.yahooUserInfoIm.FromJSON(props)
+    p.isPrimary = props.GetAsBool("primary")
+}
+
+type yahooUserInfoResult struct {
+    guid                string
+    uri                 string
+    birthYear           int
+    birthdate           string
+    created             *time.Time
+    displayAge          int
+    emails              []YahooUserInfoEmail
+    familyName          string
+    givenName           string
+    gender              string
+    ims                 []YahooUserInfoIm
+    lang                string
+    location            string
+    memberSince         *time.Time
+    nickname            string
+    profileUrl          string
+    searchable          bool
+    timeZone            string
+    updated             *time.Time
+    isConnected         bool
+}
+
+func (p *yahooUserInfoResult) Guid()              string        { return p.guid }
+func (p *yahooUserInfoResult) Username()          string        { return p.nickname }
+func (p *yahooUserInfoResult) Url()               string        { return p.uri }
+func (p *yahooUserInfoResult) DisplayName()       string        {
+    if len(p.givenName) > 0 && len(p.familyName) > 0 {
+        return p.givenName + " " + p.familyName
+    }
+    return p.givenName + p.familyName
+}
+func (p *yahooUserInfoResult) Uri()               string        { return p.uri }
+func (p *yahooUserInfoResult) BirthYear()         int           { return p.birthYear }
+func (p *yahooUserInfoResult) Birthdate()         string        { return p.birthdate }
+func (p *yahooUserInfoResult) Created()           *time.Time    { return p.created }
+func (p *yahooUserInfoResult) DisplayAge()        int           { return p.displayAge }
+func (p *yahooUserInfoResult) Emails()            []YahooUserInfoEmail { return p.emails }
+func (p *yahooUserInfoResult) FamilyName()        string        { return p.familyName }
+func (p *yahooUserInfoResult) GivenName()         string        { return p.givenName }
+func (p *yahooUserInfoResult) Gender()            string        { return p.gender }
+func (p *yahooUserInfoResult) Ims()               []YahooUserInfoIm { return p.ims }
+func (p *yahooUserInfoResult) Lang()              string        { return p.lang }
+func (p *yahooUserInfoResult) Location()          string        { return p.location }
+func (p *yahooUserInfoResult) MemberSince()       *time.Time    { return p.memberSince }
+func (p *yahooUserInfoResult) Nickname()          string        { return p.nickname }
+func (p *yahooUserInfoResult) ProfileUrl()        string        { return p.profileUrl }
+func (p *yahooUserInfoResult) Searchable()        bool          { return p.searchable }
+func (p *yahooUserInfoResult) TimeZone()          string        { return p.timeZone }
+func (p *yahooUserInfoResult) Updated()           *time.Time    { return p.updated }
+func (p *yahooUserInfoResult) IsConnected()       bool          { return p.isConnected }
+func (p *yahooUserInfoResult) FromJSON(props Properties) {
+    p.guid = props.GetAsString("guid")
+    p.uri = props.GetAsString("uri")
+    p.birthYear = props.GetAsInt("birthYear")
+    p.birthdate = props.GetAsString("birthdate")
+    p.created = props.GetAsTime("created", YAHOO_DATETIME_FORMAT)
+    p.displayAge = props.GetAsInt("displayAge")
+    emails := props.GetAsArray("emails")
+    p.emails = make([]YahooUserInfoEmail, len(emails))
+    for i, email := range emails {
+        v := new(yahooUserInfoEmail)
+        v.FromJSON(Properties(email.(map[string]interface{})))
+        p.emails[i] = v
+    }
+    p.familyName = props.GetAsString("familyName")
+    p.givenName = props.GetAsString("givenName")
+    p.gender = props.GetAsString("gender")
+    ims := props.GetAsArray("ims")
+    p.ims = make([]YahooUserInfoIm, len(ims))
+    for i, im := range ims {
+        v := new(yahooUserInfoIm)
+        v.FromJSON(Properties(im.(map[string]interface{})))
+        p.ims[i] = v
+    }
+    p.lang = props.GetAsString("lang")
+    p.location = props.GetAsString("location")
+    p.memberSince = props.GetAsTime("memberSince", YAHOO_DATETIME_FORMAT)
+    p.nickname = props.GetAsString("nickname")
+    p.profileUrl = props.GetAsString("profileUrl")
+    p.searchable = props.GetAsBool("searchable")
+    p.timeZone = props.GetAsString("timeZone")
+    p.updated = props.GetAsTime("updated", YAHOO_DATETIME_FORMAT)
+    p.isConnected = props.GetAsBool("isConnected")
+}
+
 func NewYahooClient() OAuth2Client {
     return &yahooClient{}
 }
 
+func (p *yahooClient) RequestUrl() string { return _YAHOO_REQUEST_TOKEN_URL }
+func (p *yahooClient) RequestUrlMethod() string { return _YAHOO_REQUEST_TOKEN_METHOD }
+func (p *yahooClient) RequestUrlProtected() bool { return _YAHOO_REQUEST_TOKEN_PROTECTED }
+func (p *yahooClient) AccessUrl() string { return _YAHOO_ACCESS_TOKEN_URL }
+func (p *yahooClient) AccessUrlMethod() string  { return _YAHOO_ACCESS_TOKEN_METHOD }
+func (p *yahooClient) AccessUrlProtected() bool { return _YAHOO_ACCESS_TOKEN_PROTECTED }
+func (p *yahooClient) AuthorizationUrl() string { return _YAHOO_AUTHORIZATION_PATH_URL }
+func (p *yahooClient) AuthorizedResourceProtected() bool { return _YAHOO_AUTHORIZED_RESOURCE_PROTECTED }
+func (p *yahooClient) ServiceId() string { return "yahoo.com" }
 func (p *yahooClient) Initialize(properties Properties) {
     if properties == nil {
         return
@@ -71,33 +223,6 @@ func (p *yahooClient) Initialize(properties Properties) {
     }
     if v := properties.GetAsString("yahoo.client.redirect_uri"); len(v) > 0 {
         p.callbackUrl = v
-    }
-    if v := properties.GetAsString("yahoo.oauth1.request_token_path.url"); len(v) > 0 {
-        p.requestUrl = v
-        //p.TemporaryCredentialRequestURI = v
-    }
-    if v := properties.GetAsString("yahoo.oauth1.request_token_path.method"); len(v) > 0 {
-        p.requestUrlMethod = v
-    }
-    if v := properties.GetAsBool("yahoo.oauth1.request_token_path.protected"); true {
-        p.requestUrlProtected = v
-    }
-    if v := properties.GetAsString("yahoo.oauth1.authorization_path.url"); len(v) > 0 {
-        p.authorizationUrl = v
-        //p.ResourceOwnerAuthorizationURI = v
-    }
-    if v := properties.GetAsString("yahoo.oauth1.access_token_path.url"); len(v) > 0 {
-        p.accessUrl = v
-        //p.TokenRequestURI = v
-    }
-    if v := properties.GetAsString("yahoo.oauth1.access_token_path.method"); len(v) > 0 {
-        p.accessUrlMethod = v
-    }
-    if v := properties.GetAsBool("yahoo.oauth1.access_token_path.protected"); true {
-        p.accessUrlProtected = v
-    }
-    if v := properties.GetAsBool("yahoo.oauth1.authorized_resource.protected"); true {
-        p.authorizedResourceProtected = v
     }
     if v := properties.GetAsString("yahoo.oauth1.scope"); len(v) > 0 {
         //p.Scope = v
@@ -166,6 +291,23 @@ func (p *yahooClient) ParseAccessTokenResult(value string) (AuthToken, os.Error)
     }
     log.Print("+++++++++++++++++++++++++++++++")
     return t, err
+}
+
+func (p *yahooClient) RetrieveUserInfo() (UserInfo, os.Error) {
+    req, err := p.CreateAuthorizedRequest(_YAHOO_USERINFO_METHOD, nil, _YAHOO_USERINFO_URL, nil, nil)
+    if err != nil {
+        return nil, err
+    }
+    result := new(yahooUserInfoResult)
+    resp, _, err := makeRequest(p.client, req)
+    if resp != nil && resp.Body != nil {
+        props := make(Properties)
+        if err2 := json.NewDecoder(resp.Body).Decode(&props); err == nil {
+            err = err2
+        }
+        result.FromJSON(props.GetAsObject("profile"))
+    }
+    return result, err
 }
 
 

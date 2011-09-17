@@ -160,6 +160,8 @@ func (p Properties) GetAsObject(key string) Properties {
         return make(Properties)
     case Properties:
         return v
+    case map[string]interface{}:
+        return Properties(v)
     }
     return make(Properties)
 }
@@ -193,13 +195,24 @@ func (p Properties) GetAsTime(key string, format string) *time.Time {
     return nil
 }
 
+type UserInfo interface {
+    Guid()          string
+    Username()      string
+    GivenName()     string
+    FamilyName()    string
+    DisplayName()   string
+    Url()           string
+}
+
 type OAuth2Client interface {
+    ServiceId() string
     Client() *http.Client
     Initialize(properties Properties)
     GenerateRequestTokenUrl(properties Properties) string
     RequestTokenGranted(req *http.Request) bool
     ExchangeRequestTokenForAccess(req *http.Request) os.Error
     CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error)
+    RetrieveUserInfo()              (UserInfo, os.Error)
 }
 
 func AuthorizedGetRequest(client OAuth2Client, headers http.Header, uri string, query url.Values) (*http.Response, *http.Request, os.Error) {
@@ -288,6 +301,25 @@ func AuthorizedRequest(client OAuth2Client, method string, headers http.Header, 
         return nil, req, err
     }
     return makeRequest(client.Client(), req)
+}
+
+func splitUrl(uri string, query url.Values) (string, url.Values) {
+    parts := strings.SplitN(uri, "?", 1)
+    if query == nil {
+        query = make(url.Values)
+    }
+    if len(parts) > 1 && len(parts[1]) > 0 {
+        queryPart := strings.Replace(parts[1], "?", "&", -1)
+        m, _ := url.ParseQuery(queryPart)
+        if m != nil {
+            for k, arr := range m {
+                for _, v := range arr {
+                    query.Add(k, v)
+                }
+            }
+        }
+    }
+    return parts[0], query
 }
 
 func makeUrl(uri string, query url.Values) string {

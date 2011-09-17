@@ -2,6 +2,7 @@ include $(GOROOT)/src/Make.inc
 
 TARG=github.com/pomack/oauth2_client
 GOFILES=\
+    const.go\
     facebook.go\
     google.go\
     linkedin.go\
