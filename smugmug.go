@@ -1,6 +1,7 @@
 package oauth2_client
 
 import (
+    "github.com/pomack/jsonhelper"
     "http"
     "io"
     "json"
@@ -53,7 +54,7 @@ func (p *smugMugUserInfoResult) AccountStatus() string { return p.accountStatus 
 func (p *smugMugUserInfoResult) AccountType() string { return p.accountType }
 func (p *smugMugUserInfoResult) FileSizeLimit() int64 { return p.fileSizeLimit }
 func (p *smugMugUserInfoResult) SmugVault() bool { return p.smugVault }
-func (p *smugMugUserInfoResult) FromJSON(props JSONObject) {
+func (p *smugMugUserInfoResult) FromJSON(props jsonhelper.JSONObject) {
     log.Print("user info result from json: ", props)
     p.id = props.GetAsInt64("id")
     p.accountStatus = props.GetAsString("AccountStatus")
@@ -101,7 +102,7 @@ func (p *smugMugClient) AccessUrlProtected() bool { return _SMUGMUG_ACCESS_TOKEN
 func (p *smugMugClient) AuthorizationUrl() string { return _SMUGMUG_AUTHORIZATION_PATH_URL }
 func (p *smugMugClient) AuthorizedResourceProtected() bool { return _SMUGMUG_AUTHORIZED_RESOURCE_PROTECTED }
 func (p *smugMugClient) ServiceId() string { return "smugmug.com" }
-func (p *smugMugClient) Initialize(properties JSONObject) {
+func (p *smugMugClient) Initialize(properties jsonhelper.JSONObject) {
     if properties == nil {
         return
     }
@@ -127,7 +128,7 @@ func (p *smugMugClient) Initialize(properties JSONObject) {
     }
 }
 
-func (p *smugMugClient) GenerateRequestTokenUrl(properties JSONObject) string {
+func (p *smugMugClient) GenerateRequestTokenUrl(properties jsonhelper.JSONObject) string {
     return oauth1GenerateRequestTokenUrl(p, properties)
 }
 
@@ -184,7 +185,7 @@ func (p *smugMugClient) RetrieveUserInfo() (UserInfo, os.Error) {
     result := new(smugMugUserInfoResult)
     resp, _, err := makeRequest(p.client, req)
     if resp != nil && resp.Body != nil {
-        props := NewJSONObject()
+        props := jsonhelper.NewJSONObject()
         if err2 := json.NewDecoder(resp.Body).Decode(&props); err == nil {
             err = err2
         }

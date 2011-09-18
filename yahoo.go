@@ -1,6 +1,7 @@
 package oauth2_client
 
 import (
+    "github.com/pomack/jsonhelper"
     "http"
     "io"
     "json"
@@ -90,7 +91,7 @@ type yahooUserInfoIm struct {
 func (p *yahooUserInfoIm) Handle() string { return p.handle }
 func (p *yahooUserInfoIm) Id() int { return p.id }
 func (p *yahooUserInfoIm) Type() string { return p.theType }
-func (p *yahooUserInfoIm) FromJSON(props JSONObject) {
+func (p *yahooUserInfoIm) FromJSON(props jsonhelper.JSONObject) {
     p.handle = props.GetAsString("handle")
     p.id = props.GetAsInt("id")
     p.theType = props.GetAsString("type")
@@ -102,7 +103,7 @@ type yahooUserInfoEmail struct {
 }
 
 func (p *yahooUserInfoEmail) IsPrimary() bool { return p.isPrimary }
-func (p *yahooUserInfoEmail) FromJSON(props JSONObject) {
+func (p *yahooUserInfoEmail) FromJSON(props jsonhelper.JSONObject) {
     p.yahooUserInfoIm.FromJSON(props)
     p.isPrimary = props.GetAsBool("primary")
 }
@@ -158,7 +159,7 @@ func (p *yahooUserInfoResult) Searchable()        bool          { return p.searc
 func (p *yahooUserInfoResult) TimeZone()          string        { return p.timeZone }
 func (p *yahooUserInfoResult) Updated()           *time.Time    { return p.updated }
 func (p *yahooUserInfoResult) IsConnected()       bool          { return p.isConnected }
-func (p *yahooUserInfoResult) FromJSON(props JSONObject) {
+func (p *yahooUserInfoResult) FromJSON(props jsonhelper.JSONObject) {
     p.guid = props.GetAsString("guid")
     p.uri = props.GetAsString("uri")
     p.birthYear = props.GetAsInt("birthYear")
@@ -169,7 +170,7 @@ func (p *yahooUserInfoResult) FromJSON(props JSONObject) {
     p.emails = make([]YahooUserInfoEmail, len(emails))
     for i, email := range emails {
         v := new(yahooUserInfoEmail)
-        v.FromJSON(JSONValueToObject(email))
+        v.FromJSON(jsonhelper.JSONValueToObject(email))
         p.emails[i] = v
     }
     p.familyName = props.GetAsString("familyName")
@@ -179,7 +180,7 @@ func (p *yahooUserInfoResult) FromJSON(props JSONObject) {
     p.ims = make([]YahooUserInfoIm, len(ims))
     for i, im := range ims {
         v := new(yahooUserInfoIm)
-        v.FromJSON(JSONValueToObject(im))
+        v.FromJSON(jsonhelper.JSONValueToObject(im))
         p.ims[i] = v
     }
     p.lang = props.GetAsString("lang")
@@ -206,7 +207,7 @@ func (p *yahooClient) AccessUrlProtected() bool { return _YAHOO_ACCESS_TOKEN_PRO
 func (p *yahooClient) AuthorizationUrl() string { return _YAHOO_AUTHORIZATION_PATH_URL }
 func (p *yahooClient) AuthorizedResourceProtected() bool { return _YAHOO_AUTHORIZED_RESOURCE_PROTECTED }
 func (p *yahooClient) ServiceId() string { return "yahoo.com" }
-func (p *yahooClient) Initialize(properties JSONObject) {
+func (p *yahooClient) Initialize(properties jsonhelper.JSONObject) {
     if properties == nil {
         return
     }
@@ -229,7 +230,7 @@ func (p *yahooClient) Initialize(properties JSONObject) {
     }
 }
 
-func (p *yahooClient) GenerateRequestTokenUrl(properties JSONObject) string {
+func (p *yahooClient) GenerateRequestTokenUrl(properties jsonhelper.JSONObject) string {
     return oauth1GenerateRequestTokenUrl(p, properties)
 }
 
@@ -301,7 +302,7 @@ func (p *yahooClient) RetrieveUserInfo() (UserInfo, os.Error) {
     result := new(yahooUserInfoResult)
     resp, _, err := makeRequest(p.client, req)
     if resp != nil && resp.Body != nil {
-        props := NewJSONObject()
+        props := jsonhelper.NewJSONObject()
         if err2 := json.NewDecoder(resp.Body).Decode(&props); err == nil {
             err = err2
         }

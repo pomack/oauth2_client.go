@@ -1,6 +1,7 @@
 package oauth2_client
 
 import (
+    "github.com/pomack/jsonhelper"
     "bytes"
     "http"
     "io"
@@ -22,8 +23,8 @@ type UserInfo interface {
 type OAuth2Client interface {
     ServiceId() string
     Client() *http.Client
-    Initialize(properties JSONObject)
-    GenerateRequestTokenUrl(properties JSONObject) string
+    Initialize(properties jsonhelper.JSONObject)
+    GenerateRequestTokenUrl(properties jsonhelper.JSONObject) string
     RequestTokenGranted(req *http.Request) bool
     ExchangeRequestTokenForAccess(req *http.Request) os.Error
     CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error)

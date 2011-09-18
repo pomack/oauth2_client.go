@@ -1,6 +1,7 @@
 package oauth2_client
 
 import (
+    "github.com/pomack/jsonhelper"
     "http"
     "log"
     "io"
@@ -67,7 +68,7 @@ func (p *linkedInUserInfoResult) Id() string { return p.id }
 func (p *linkedInUserInfoResult) FirstName() string { return p.firstName }
 func (p *linkedInUserInfoResult) LastName() string { return p.lastName }
 func (p *linkedInUserInfoResult) PublicProfileUrl() string { return p.publicProfileUrl }
-func (p *linkedInUserInfoResult) FromJSON(props JSONObject) {
+func (p *linkedInUserInfoResult) FromJSON(props jsonhelper.JSONObject) {
     p.id = props.GetAsString("id")
     p.firstName = props.GetAsString("firstName")
     p.lastName = props.GetAsString("lastName")
@@ -92,7 +93,7 @@ func (p *linkedInClient) AccessUrlProtected() bool { return _LINKEDIN_ACCESS_TOK
 func (p *linkedInClient) AuthorizationUrl() string { return _LINKEDIN_AUTHORIZATION_PATH_URL }
 func (p *linkedInClient) AuthorizedResourceProtected() bool { return _LINKEDIN_AUTHORIZED_RESOURCE_PROTECTED }
 func (p *linkedInClient) ServiceId() string { return "linkedin.com" }
-func (p *linkedInClient) Initialize(properties JSONObject) {
+func (p *linkedInClient) Initialize(properties jsonhelper.JSONObject) {
     if properties == nil {
         return
     }
@@ -112,7 +113,7 @@ func (p *linkedInClient) Initialize(properties JSONObject) {
     }
 }
 
-func (p *linkedInClient) GenerateRequestTokenUrl(properties JSONObject) string {
+func (p *linkedInClient) GenerateRequestTokenUrl(properties jsonhelper.JSONObject) string {
     return oauth1GenerateRequestTokenUrl(p, properties)
 }
 
@@ -188,7 +189,7 @@ func (p *linkedInClient) RetrieveUserInfo() (UserInfo, os.Error) {
     result := new(linkedInUserInfoResult)
     resp, _, err := makeRequest(p.client, req)
     if resp != nil && resp.Body != nil {
-        props := NewJSONObject()
+        props := jsonhelper.NewJSONObject()
         if err2 := json.NewDecoder(resp.Body).Decode(&props); err == nil {
             err = err2
         }

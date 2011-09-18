@@ -1,6 +1,7 @@
 package main
 
 import (
+    "github.com/pomack/jsonhelper"
     "github.com/pomack/oauth2_client"
     "http"
     "io"
@@ -38,7 +39,7 @@ func HandlePage(w http.ResponseWriter, req *http.Request) {
 }
 
 func HandleGenericOauthRequest(c oauth2_client.OAuth2Client, w http.ResponseWriter, req *http.Request) {
-    uri := c.GenerateRequestTokenUrl(make(oauth2_client.JSONObject))
+    uri := c.GenerateRequestTokenUrl(jsonhelper.NewJSONObject())
     if len(uri) > 0 {
         w.Header().Set("Location", uri)
         w.WriteHeader(302)
@@ -160,13 +161,13 @@ func HandleClientAccept(w http.ResponseWriter, req *http.Request) {
     return
 }
 
-func getProperties() oauth2_client.JSONObject {
+func getProperties() jsonhelper.JSONObject {
     props, _ := readPropertiesFile("settings.json")
     return props
 }
 
-func readPropertiesFile(filename string) (oauth2_client.JSONObject, os.Error) {
-    props := oauth2_client.NewJSONObject()
+func readPropertiesFile(filename string) (jsonhelper.JSONObject, os.Error) {
+    props := jsonhelper.NewJSONObject()
     propFile, err := os.Open(filename)
     if propFile == nil {
         log.Fatal("Could not open properties file: ", filename)

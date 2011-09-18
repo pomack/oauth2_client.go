@@ -1,6 +1,7 @@
 package oauth2_client
 
 import (
+    "github.com/pomack/jsonhelper"
     "bytes"
     "http"
     "fmt"
@@ -41,13 +42,13 @@ type facebookLocation struct {
 func (p *facebookLocation) Id() string { return p.id }
 func (p *facebookLocation) Name() string { return p.name }
 func (p *facebookLocation) UnmarshalJSON(data []byte) os.Error {
-    props := NewJSONObject()
+    props := jsonhelper.NewJSONObject()
     err := json.Unmarshal(data, &props)
     p.id = props.GetAsString("id")
     p.name = props.GetAsString("name")
     return err
 }
-func (p *facebookLocation) FromJSON(props JSONObject) {
+func (p *facebookLocation) FromJSON(props jsonhelper.JSONObject) {
     p.id = props.GetAsString("id")
     p.name = props.GetAsString("name")
 }
@@ -106,7 +107,7 @@ func (p *facebookUserInfoResult) Locale() string { return p.locale }
 func (p *facebookUserInfoResult) Verified() bool { return p.verified }
 func (p *facebookUserInfoResult) UpdatedTime() *time.Time { return p.updatedTime }
 func (p *facebookUserInfoResult) UnmarshalJSON(data []byte) os.Error {
-    props := NewJSONObject()
+    props := jsonhelper.NewJSONObject()
     err := json.Unmarshal(data, &props)
     p.id = props.GetAsString("id")
     p.name = props.GetAsString("name")
@@ -147,7 +148,7 @@ func (p *facebookClient) Client() *http.Client {
     return p.client
 }
 
-func (p *facebookClient) Initialize(properties JSONObject) {
+func (p *facebookClient) Initialize(properties jsonhelper.JSONObject) {
     if properties == nil || len(properties) <= 0 {
         return
     }
@@ -228,7 +229,7 @@ func (p *facebookClient) ReadAccessTokenFromResponse(r *http.Response, now *time
 func (p *facebookClient) ReadAccessToken(body string, now *time.Time) os.Error {
     params, err := url.ParseQuery(body)
     if err != nil {
-        s := NewJSONObject()
+        s := jsonhelper.NewJSONObject()
         if err2 := json.Unmarshal([]byte(body), &s); err2 != nil {
             log.Print("Unable to read error response: ", body)
             return err2
@@ -313,9 +314,9 @@ func (p *facebookClient) AccessToken() (string, os.Error) {
     return p.accessToken, nil
 }
 
-func (p *facebookClient) GenerateRequestTokenUrl(properties JSONObject) string {
+func (p *facebookClient) GenerateRequestTokenUrl(properties jsonhelper.JSONObject) string {
     if properties == nil {
-        properties = NewJSONObject()
+        properties = jsonhelper.NewJSONObject()
     }
     m := make(url.Values)
     //m.Add("response_type", "code")

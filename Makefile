@@ -5,7 +5,6 @@ GOFILES=\
     const.go\
     facebook.go\
     google.go\
-    json_value.go\
     linkedin.go\
     oauth1_client.go\
     oauth2_client.go\

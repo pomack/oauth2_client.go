@@ -1,6 +1,7 @@
 package oauth2_client
 
 import (
+    "github.com/pomack/jsonhelper"
     "bytes"
     "container/vector"
     "crypto/hmac"
@@ -400,9 +401,9 @@ func oauth1GenerateAuthorizationUrl(p OAuth1Client, temporaryCredentials AuthTok
 }
 
 
-func oauth1GenerateRequestTokenUrl(p OAuth1Client, properties JSONObject) string {
+func oauth1GenerateRequestTokenUrl(p OAuth1Client, properties jsonhelper.JSONObject) string {
     if properties == nil {
-        properties = NewJSONObject()
+        properties = jsonhelper.NewJSONObject()
     }
     cred, err := getAuthToken(p)
     log.Printf("Received credentials: %T -> %v", cred, cred)
