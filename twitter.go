@@ -103,7 +103,7 @@ func (p *twitterUserInfoResult) StatusesCount() int { return p.statusesCount }
 func (p *twitterUserInfoResult) TimeZone() string { return p.timeZone }
 func (p *twitterUserInfoResult) UtcOffset() int { return p.utcOffset }
 func (p *twitterUserInfoResult) Following() bool { return p.following }
-func (p *twitterUserInfoResult) FromJSON(props Properties) {
+func (p *twitterUserInfoResult) FromJSON(props JSONObject) {
     p.id = props.GetAsString("id")
     p.name = props.GetAsString("name")
     p.screenName = props.GetAsString("screen_name")
@@ -139,7 +139,7 @@ func (p *twitterClient) AccessUrlProtected() bool { return _TWITTER_ACCESS_TOKEN
 func (p *twitterClient) AuthorizationUrl() string { return _TWITTER_AUTHORIZATION_PATH_URL }
 func (p *twitterClient) AuthorizedResourceProtected() bool { return _TWITTER_AUTHORIZED_RESOURCE_PROTECTED }
 func (p *twitterClient) ServiceId() string { return "twitter.com" }
-func (p *twitterClient) Initialize(properties Properties) {
+func (p *twitterClient) Initialize(properties JSONObject) {
     if properties == nil {
         return
     }
@@ -159,7 +159,7 @@ func (p *twitterClient) Initialize(properties Properties) {
     }
 }
 
-func (p *twitterClient) GenerateRequestTokenUrl(properties Properties) string {
+func (p *twitterClient) GenerateRequestTokenUrl(properties JSONObject) string {
     return oauth1GenerateRequestTokenUrl(p, properties)
 }
 
@@ -221,7 +221,7 @@ func (p *twitterClient) RetrieveUserInfo() (UserInfo, os.Error) {
     result := new(twitterUserInfoResult)
     resp, _, err := makeRequest(p.client, req)
     if resp != nil && resp.Body != nil {
-        props := make(Properties)
+        props := NewJSONObject()
         if err2 := json.NewDecoder(resp.Body).Decode(&props); err == nil {
             err = err2
         }

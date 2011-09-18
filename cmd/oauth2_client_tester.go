@@ -38,7 +38,7 @@ func HandlePage(w http.ResponseWriter, req *http.Request) {
 }
 
 func HandleGenericOauthRequest(c oauth2_client.OAuth2Client, w http.ResponseWriter, req *http.Request) {
-    uri := c.GenerateRequestTokenUrl(make(oauth2_client.Properties))
+    uri := c.GenerateRequestTokenUrl(make(oauth2_client.JSONObject))
     if len(uri) > 0 {
         w.Header().Set("Location", uri)
         w.WriteHeader(302)
@@ -160,13 +160,13 @@ func HandleClientAccept(w http.ResponseWriter, req *http.Request) {
     return
 }
 
-func getProperties() oauth2_client.Properties {
+func getProperties() oauth2_client.JSONObject {
     props, _ := readPropertiesFile("settings.json")
     return props
 }
 
-func readPropertiesFile(filename string) (oauth2_client.Properties, os.Error) {
-    props := make(oauth2_client.Properties)
+func readPropertiesFile(filename string) (oauth2_client.JSONObject, os.Error) {
+    props := oauth2_client.NewJSONObject()
     propFile, err := os.Open(filename)
     if propFile == nil {
         log.Fatal("Could not open properties file: ", filename)

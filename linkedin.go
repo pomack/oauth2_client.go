@@ -67,7 +67,7 @@ func (p *linkedInUserInfoResult) Id() string { return p.id }
 func (p *linkedInUserInfoResult) FirstName() string { return p.firstName }
 func (p *linkedInUserInfoResult) LastName() string { return p.lastName }
 func (p *linkedInUserInfoResult) PublicProfileUrl() string { return p.publicProfileUrl }
-func (p *linkedInUserInfoResult) FromJSON(props Properties) {
+func (p *linkedInUserInfoResult) FromJSON(props JSONObject) {
     p.id = props.GetAsString("id")
     p.firstName = props.GetAsString("firstName")
     p.lastName = props.GetAsString("lastName")
@@ -92,7 +92,7 @@ func (p *linkedInClient) AccessUrlProtected() bool { return _LINKEDIN_ACCESS_TOK
 func (p *linkedInClient) AuthorizationUrl() string { return _LINKEDIN_AUTHORIZATION_PATH_URL }
 func (p *linkedInClient) AuthorizedResourceProtected() bool { return _LINKEDIN_AUTHORIZED_RESOURCE_PROTECTED }
 func (p *linkedInClient) ServiceId() string { return "linkedin.com" }
-func (p *linkedInClient) Initialize(properties Properties) {
+func (p *linkedInClient) Initialize(properties JSONObject) {
     if properties == nil {
         return
     }
@@ -112,7 +112,7 @@ func (p *linkedInClient) Initialize(properties Properties) {
     }
 }
 
-func (p *linkedInClient) GenerateRequestTokenUrl(properties Properties) string {
+func (p *linkedInClient) GenerateRequestTokenUrl(properties JSONObject) string {
     return oauth1GenerateRequestTokenUrl(p, properties)
 }
 
@@ -188,7 +188,7 @@ func (p *linkedInClient) RetrieveUserInfo() (UserInfo, os.Error) {
     result := new(linkedInUserInfoResult)
     resp, _, err := makeRequest(p.client, req)
     if resp != nil && resp.Body != nil {
-        props := make(Properties)
+        props := NewJSONObject()
         if err2 := json.NewDecoder(resp.Body).Decode(&props); err == nil {
             err = err2
         }

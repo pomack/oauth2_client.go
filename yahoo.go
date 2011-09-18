@@ -90,7 +90,7 @@ type yahooUserInfoIm struct {
 func (p *yahooUserInfoIm) Handle() string { return p.handle }
 func (p *yahooUserInfoIm) Id() int { return p.id }
 func (p *yahooUserInfoIm) Type() string { return p.theType }
-func (p *yahooUserInfoIm) FromJSON(props Properties) {
+func (p *yahooUserInfoIm) FromJSON(props JSONObject) {
     p.handle = props.GetAsString("handle")
     p.id = props.GetAsInt("id")
     p.theType = props.GetAsString("type")
@@ -102,7 +102,7 @@ type yahooUserInfoEmail struct {
 }
 
 func (p *yahooUserInfoEmail) IsPrimary() bool { return p.isPrimary }
-func (p *yahooUserInfoEmail) FromJSON(props Properties) {
+func (p *yahooUserInfoEmail) FromJSON(props JSONObject) {
     p.yahooUserInfoIm.FromJSON(props)
     p.isPrimary = props.GetAsBool("primary")
 }
@@ -158,7 +158,7 @@ func (p *yahooUserInfoResult) Searchable()        bool          { return p.searc
 func (p *yahooUserInfoResult) TimeZone()          string        { return p.timeZone }
 func (p *yahooUserInfoResult) Updated()           *time.Time    { return p.updated }
 func (p *yahooUserInfoResult) IsConnected()       bool          { return p.isConnected }
-func (p *yahooUserInfoResult) FromJSON(props Properties) {
+func (p *yahooUserInfoResult) FromJSON(props JSONObject) {
     p.guid = props.GetAsString("guid")
     p.uri = props.GetAsString("uri")
     p.birthYear = props.GetAsInt("birthYear")
@@ -169,7 +169,7 @@ func (p *yahooUserInfoResult) FromJSON(props Properties) {
     p.emails = make([]YahooUserInfoEmail, len(emails))
     for i, email := range emails {
         v := new(yahooUserInfoEmail)
-        v.FromJSON(Properties(email.(map[string]interface{})))
+        v.FromJSON(JSONValueToObject(email))
         p.emails[i] = v
     }
     p.familyName = props.GetAsString("familyName")
@@ -179,7 +179,7 @@ func (p *yahooUserInfoResult) FromJSON(props Properties) {
     p.ims = make([]YahooUserInfoIm, len(ims))
     for i, im := range ims {
         v := new(yahooUserInfoIm)
-        v.FromJSON(Properties(im.(map[string]interface{})))
+        v.FromJSON(JSONValueToObject(im))
         p.ims[i] = v
     }
     p.lang = props.GetAsString("lang")
@@ -206,7 +206,7 @@ func (p *yahooClient) AccessUrlProtected() bool { return _YAHOO_ACCESS_TOKEN_PRO
 func (p *yahooClient) AuthorizationUrl() string { return _YAHOO_AUTHORIZATION_PATH_URL }
 func (p *yahooClient) AuthorizedResourceProtected() bool { return _YAHOO_AUTHORIZED_RESOURCE_PROTECTED }
 func (p *yahooClient) ServiceId() string { return "yahoo.com" }
-func (p *yahooClient) Initialize(properties Properties) {
+func (p *yahooClient) Initialize(properties JSONObject) {
     if properties == nil {
         return
     }
@@ -229,7 +229,7 @@ func (p *yahooClient) Initialize(properties Properties) {
     }
 }
 
-func (p *yahooClient) GenerateRequestTokenUrl(properties Properties) string {
+func (p *yahooClient) GenerateRequestTokenUrl(properties JSONObject) string {
     return oauth1GenerateRequestTokenUrl(p, properties)
 }
 
@@ -301,7 +301,7 @@ func (p *yahooClient) RetrieveUserInfo() (UserInfo, os.Error) {
     result := new(yahooUserInfoResult)
     resp, _, err := makeRequest(p.client, req)
     if resp != nil && resp.Body != nil {
-        props := make(Properties)
+        props := NewJSONObject()
         if err2 := json.NewDecoder(resp.Body).Decode(&props); err == nil {
             err = err2
         }

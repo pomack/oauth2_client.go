@@ -4,196 +4,11 @@ import (
     "bytes"
     "http"
     "io"
-    "json"
     "log"
     "os"
-    "strconv"
     "strings"
-    "time"
     "url"
 )
-
-type Properties map[string]interface{}
-
-func (p Properties) Set(key string, value interface{}) {
-    p[key] = value
-}
-
-func (p Properties) Get(key string) interface{} {
-    value, _ := p[key]
-    return value
-}
-
-func (p Properties) GetAsString(key string) string {
-    value, _ := p[key]
-    switch v := value.(type) {
-    case nil:
-        return ""
-    case string:
-        return v
-    case int:
-        return strconv.Itoa(v)
-    case int64:
-        return strconv.Itoa64(v)
-    case float64:
-        return strconv.Ftoa64(v, 'g', -1)
-    case bool:
-        if v {
-            return "true"
-        }
-        return "false"
-    }
-    bytes, _ := json.Marshal(value)
-    return string(bytes)
-}
-
-func (p Properties) GetAsInt(key string) int {
-    value, _ := p[key]
-    switch v := value.(type) {
-    case nil:
-        return 0
-    case int:
-        return v
-    case float64:
-        return int(v)
-    case int64:
-        return int(v)
-    case string:
-        i, _ := strconv.Atoi(v)
-        return i
-    case bool:
-        if v {
-            return 1
-        }
-        return 0
-    case Properties:
-        return len(v)
-    case []interface{}:
-        return len(v)
-    }
-    return 0
-}
-
-func (p Properties) GetAsInt64(key string) int64 {
-    value, _ := p[key]
-    switch v := value.(type) {
-    case nil:
-        return 0
-    case int:
-        return int64(v)
-    case float64:
-        return int64(v)
-    case int64:
-        return v
-    case string:
-        i, _ := strconv.Atoi64(v)
-        return i
-    case bool:
-        if v {
-            return 1
-        }
-        return 0
-    case Properties:
-        return int64(len(v))
-    case []interface{}:
-        return int64(len(v))
-    }
-    return 0
-}
-
-
-func (p Properties) GetAsFloat64(key string) float64 {
-    value, _ := p[key]
-    switch v := value.(type) {
-    case nil:
-        return 0
-    case int:
-        return float64(v)
-    case float64:
-        return v
-    case int64:
-        return float64(v)
-    case string:
-        i, _ := strconv.Atof64(v)
-        return i
-    case bool:
-        if v {
-            return 1
-        }
-        return 0
-    case Properties:
-        return float64(len(v))
-    case []interface{}:
-        return float64(len(v))
-    }
-    return 0
-}
-
-func (p Properties) GetAsBool(key string) bool {
-    value, _ := p[key]
-    switch v := value.(type) {
-    case nil:
-        return false
-    case bool:
-        return v
-    case int:
-        return v != 0
-    case float64:
-        return v != 0.0
-    case int64:
-        return v != 0
-    case string:
-        s := strings.ToLower(v)
-        return s == "true" || s == "1" || s == "yes"
-    case Properties:
-        return len(v) > 0
-    case []interface{}:
-        return len(v) > 0
-    }
-    return false
-}
-
-func (p Properties) GetAsObject(key string) Properties {
-    value, _ := p[key]
-    switch v := value.(type) {
-    case nil, bool, int, float64, int64, string, []interface{}:
-        return make(Properties)
-    case Properties:
-        return v
-    case map[string]interface{}:
-        return Properties(v)
-    }
-    return make(Properties)
-}
-
-func (p Properties) GetAsArray(key string) []interface{} {
-    value, _ := p[key]
-    switch v := value.(type) {
-    case nil, bool, int, float64, int64, string, Properties:
-        return make([]interface{}, 0)
-    case []interface{}:
-        return v
-    }
-    return make([]interface{}, 0)
-}
-
-func (p Properties) GetAsTime(key string, format string) *time.Time {
-    value, _ := p[key]
-    switch v := value.(type) {
-    case nil, bool, []interface{}, Properties:
-        return nil
-    case string:
-        t, _ := time.Parse(format, v)
-        return t
-    case int64:
-        return time.SecondsToUTC(v)
-    case int:
-        return time.SecondsToUTC(int64(v))
-    case float64:
-        return time.SecondsToUTC(int64(v))
-    }
-    return nil
-}
 
 type UserInfo interface {
     Guid()          string
@@ -207,8 +22,8 @@ type UserInfo interface {
 type OAuth2Client interface {
     ServiceId() string
     Client() *http.Client
-    Initialize(properties Properties)
-    GenerateRequestTokenUrl(properties Properties) string
+    Initialize(properties JSONObject)
+    GenerateRequestTokenUrl(properties JSONObject) string
     RequestTokenGranted(req *http.Request) bool
     ExchangeRequestTokenForAccess(req *http.Request) os.Error
     CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error)

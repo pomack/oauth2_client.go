@@ -48,21 +48,21 @@ func (p *googleUserInfoResult) Id() string { return p.id }
 func (p *googleUserInfoResult) Name() string { return p.name }
 func (p *googleUserInfoResult) Updated() *time.Time { return p.updated }
 func (p *googleUserInfoResult) UnmarshalJSON(data []byte) os.Error {
-    props := make(Properties)
+    props := NewJSONObject()
     err := json.Unmarshal(data, &props)
     p.FromJSON(props)
     return err
 }
-func (p *googleUserInfoResult) FromJSON(props Properties) {
+func (p *googleUserInfoResult) FromJSON(props JSONObject) {
     p.id = props.GetAsObject("id").GetAsString("$t")
     authorArr := props.GetAsArray("author")
     if len(authorArr) > 0 {
-        author := Properties(authorArr[0].(map[string]interface{}))
+        author := JSONValueToObject(authorArr[0])
         p.name = author.GetAsObject("name").GetAsString("$t")
         p.email = author.GetAsObject("email").GetAsString("$t")
     }
     for _, l := range props.GetAsArray("link") {
-        m := Properties(l.(map[string]interface{}))
+        m := JSONValueToObject(l)
         if m.GetAsString("rel") == _GOOGLE_USERINFO_FEED_REL {
             p.uri = m.GetAsString("href")
         }
@@ -99,7 +99,7 @@ func (p *googleClient) Client() *http.Client {
 }
 
 func (p *googleClient) ServiceId() string { return "google.com" }
-func (p *googleClient) Initialize(properties Properties) {
+func (p *googleClient) Initialize(properties JSONObject) {
     if properties == nil || len(properties) <= 0 {
         return
     }
@@ -245,9 +245,9 @@ func (p *googleClient) AccessToken() (string, os.Error) {
     return p.accessToken, nil
 }
 
-func (p *googleClient) GenerateRequestTokenUrl(properties Properties) string {
+func (p *googleClient) GenerateRequestTokenUrl(properties JSONObject) string {
     if properties == nil {
-        properties = make(Properties)
+        properties = NewJSONObject()
     }
     m := make(url.Values)
     m.Add("response_type", "code")
@@ -330,7 +330,7 @@ func (p *googleClient) RetrieveUserInfo() (UserInfo, os.Error) {
     result := new(googleUserInfoResult)
     resp, _, err := makeRequest(p.client, req)
     if resp != nil && resp.Body != nil {
-        props := make(Properties)
+        props := NewJSONObject()
         if err2 := json.NewDecoder(resp.Body).Decode(&props); err == nil {
             err = err2
         }

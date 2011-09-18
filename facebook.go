@@ -41,13 +41,13 @@ type facebookLocation struct {
 func (p *facebookLocation) Id() string { return p.id }
 func (p *facebookLocation) Name() string { return p.name }
 func (p *facebookLocation) UnmarshalJSON(data []byte) os.Error {
-    props := make(Properties)
+    props := NewJSONObject()
     err := json.Unmarshal(data, &props)
     p.id = props.GetAsString("id")
     p.name = props.GetAsString("name")
     return err
 }
-func (p *facebookLocation) FromJSON(props Properties) {
+func (p *facebookLocation) FromJSON(props JSONObject) {
     p.id = props.GetAsString("id")
     p.name = props.GetAsString("name")
 }
@@ -106,7 +106,7 @@ func (p *facebookUserInfoResult) Locale() string { return p.locale }
 func (p *facebookUserInfoResult) Verified() bool { return p.verified }
 func (p *facebookUserInfoResult) UpdatedTime() *time.Time { return p.updatedTime }
 func (p *facebookUserInfoResult) UnmarshalJSON(data []byte) os.Error {
-    props := make(Properties)
+    props := NewJSONObject()
     err := json.Unmarshal(data, &props)
     p.id = props.GetAsString("id")
     p.name = props.GetAsString("name")
@@ -147,7 +147,7 @@ func (p *facebookClient) Client() *http.Client {
     return p.client
 }
 
-func (p *facebookClient) Initialize(properties Properties) {
+func (p *facebookClient) Initialize(properties JSONObject) {
     if properties == nil || len(properties) <= 0 {
         return
     }
@@ -228,7 +228,7 @@ func (p *facebookClient) ReadAccessTokenFromResponse(r *http.Response, now *time
 func (p *facebookClient) ReadAccessToken(body string, now *time.Time) os.Error {
     params, err := url.ParseQuery(body)
     if err != nil {
-        s := make(Properties)
+        s := NewJSONObject()
         if err2 := json.Unmarshal([]byte(body), &s); err2 != nil {
             log.Print("Unable to read error response: ", body)
             return err2
@@ -313,9 +313,9 @@ func (p *facebookClient) AccessToken() (string, os.Error) {
     return p.accessToken, nil
 }
 
-func (p *facebookClient) GenerateRequestTokenUrl(properties Properties) string {
+func (p *facebookClient) GenerateRequestTokenUrl(properties JSONObject) string {
     if properties == nil {
-        properties = make(Properties)
+        properties = NewJSONObject()
     }
     m := make(url.Values)
     //m.Add("response_type", "code")

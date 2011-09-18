@@ -400,9 +400,9 @@ func oauth1GenerateAuthorizationUrl(p OAuth1Client, temporaryCredentials AuthTok
 }
 
 
-func oauth1GenerateRequestTokenUrl(p OAuth1Client, properties Properties) string {
+func oauth1GenerateRequestTokenUrl(p OAuth1Client, properties JSONObject) string {
     if properties == nil {
-        properties = make(Properties)
+        properties = NewJSONObject()
     }
     cred, err := getAuthToken(p)
     log.Printf("Received credentials: %T -> %v", cred, cred)
