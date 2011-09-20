@@ -4,7 +4,6 @@ import (
     "github.com/pomack/jsonhelper"
     "http"
     "json"
-    "log"
     "os"
     "strings"
     "url"
@@ -179,8 +178,8 @@ func (p *twitterClient) CreateAuthorizedRequest(method string, headers http.Head
 
 
 func (p *twitterClient) ParseRequestTokenResult(value string) (AuthToken, os.Error) {
-    log.Print("+++++++++++++++++++++++++++++++")
-    log.Print("Twitter Client parsing request token result")
+    LogDebug("+++++++++++++++++++++++++++++++")
+    LogDebug("Twitter Client parsing request token result")
     t := new(twitterRequestTokenResult)
     m, err := url.ParseQuery(value)
     if m != nil {
@@ -191,14 +190,14 @@ func (p *twitterClient) ParseRequestTokenResult(value string) (AuthToken, os.Err
             err = os.NewError(m.Get("oauth_problem"))
         }
     }
-    log.Print("+++++++++++++++++++++++++++++++")
+    LogDebug("+++++++++++++++++++++++++++++++")
     return t, err
 }
 
 
 func (p *twitterClient) ParseAccessTokenResult(value string) (AuthToken, os.Error) {
-    log.Print("+++++++++++++++++++++++++++++++")
-    log.Print("Twitter Client parsing access token result")
+    LogDebug("+++++++++++++++++++++++++++++++")
+    LogDebug("Twitter Client parsing access token result")
     t := new(twitterAccessTokenResult)
     m, err := url.ParseQuery(value)
     if m != nil {
@@ -210,7 +209,7 @@ func (p *twitterClient) ParseAccessTokenResult(value string) (AuthToken, os.Erro
             err = os.NewError(m.Get("oauth_problem"))
         }
     }
-    log.Print("+++++++++++++++++++++++++++++++")
+    LogDebug("+++++++++++++++++++++++++++++++")
     return t, err
 }
 

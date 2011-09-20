@@ -6,7 +6,6 @@ import (
     "http"
     "io"
     "json"
-    "log"
     "os"
     "strconv"
     "strings"
@@ -173,21 +172,21 @@ func (p *googleClient) handleClientAccept(code string) os.Error {
     url, m := p.GenerateAuthorizationCodeUri(code)
     req, err := http.NewRequest(_GOOGLE_AUTHORIZATION_CODE_METHOD, url, bytes.NewBufferString(m.Encode()))
     if err != nil {
-        log.Print("Unable to retrieve generate authorization code uri")
+        LogError("Unable to retrieve generate authorization code uri")
         return err
     }
     req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
     r, _, err := MakeRequest(p.client, req)
     //r, err := http.PostForm(url, m)
     if err != nil {
-        log.Print("Unable to retrieve generate authorization code uri")
+        LogError("Unable to retrieve generate authorization code uri")
         return err
     }
     var s googleAuthorizationCodeResponse
     err2 := json.NewDecoder(r.Body).Decode(&s)
-    log.Printf("Loaded response %T -> %v", s, s)
+    LogDebugf("Loaded response %T -> %v", s, s)
     if err2 != nil {
-        log.Print("Unable to decode the response from ", r.Body)
+        LogError("Unable to decode the response from ", r.Body)
         return err2
     }
     if len(s.AccessToken) > 0 && len(s.RefreshToken) > 0 {
@@ -202,12 +201,12 @@ func (p *googleClient) handleClientAcceptRequest(req *http.Request) os.Error {
     q := req.URL.Query()
     error := q.Get("error")
     if len(error) > 0 {
-        log.Print("Received error in client accept request")
+        LogError("Received error in client accept request")
         return os.NewError(error)
     }
     code := q.Get("code")
     if len(code) <= 0 {
-        log.Print("Received no code in client accept request")
+        LogError("Received no code in client accept request")
         return os.NewError("Expected URL parameter \"code\" in request but not found")
     }
     return p.handleClientAccept(code)
@@ -233,7 +232,7 @@ func (p *googleClient) AccessToken() (string, os.Error) {
         }
         var s googleAuthorizationCodeResponse
         err2 := json.NewDecoder(r.Body).Decode(&s)
-        log.Printf("Loaded response %T -> %v", s, s)
+        LogDebugf("Loaded response %T -> %v", s, s)
         if err2 != nil {
             return "", err2
         }
@@ -283,7 +282,7 @@ func (p *googleClient) GenerateRequestTokenUrl(properties jsonhelper.JSONObject)
 
 func (p *googleClient) RequestTokenGranted(req *http.Request) bool {
     if err := p.handleClientAcceptRequest(req); err != nil {
-        log.Print("Error in client accept request: ", err.String())
+        LogError("Error in client accept request: ", err.String())
         return false
     }
     return true

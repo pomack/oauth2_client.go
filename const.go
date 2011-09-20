@@ -85,5 +85,10 @@ var (
 	nonceLock               sync.Mutex
 	nonceCounter            uint64
 	oauth1TokenSecretMap    map[string]*oauth1SecretInfo
+	EnableLogHttpRequests   = false
+	EnableLogHttpResponses  = false
+	EnableLogDebug          = false
+	EnableLogInfo           = false
+	EnableLogError          = true
 )
 

@@ -8,7 +8,6 @@ import (
     "io"
     "io/ioutil"
     "json"
-    "log"
     "os"
     "strconv"
     "strings"
@@ -219,7 +218,7 @@ func (p *facebookClient) GenerateAuthorizationCodeUri(code string) (string, url.
 func (p *facebookClient) ReadAccessTokenFromResponse(r *http.Response, now *time.Time) os.Error {
     body_bytes, err := ioutil.ReadAll(r.Body)
     if err != nil {
-        log.Print("Unable to read the response from ", r.Body)
+        LogError("Unable to read the response from ", r.Body)
         return err
     }
     body := string(body_bytes)
@@ -231,7 +230,7 @@ func (p *facebookClient) ReadAccessToken(body string, now *time.Time) os.Error {
     if err != nil {
         s := jsonhelper.NewJSONObject()
         if err2 := json.Unmarshal([]byte(body), &s); err2 != nil {
-            log.Print("Unable to read error response: ", body)
+            LogError("Unable to read error response: ", body)
             return err2
         }
         return os.NewError(fmt.Sprintf("%v", s))
@@ -259,14 +258,14 @@ func (p *facebookClient) HandleClientAccept(code string) os.Error {
     uri, m := p.GenerateAuthorizationCodeUri(code)
     req, err := http.NewRequest(_FACEBOOK_AUTHORIZATION_CODE_METHOD, uri, bytes.NewBufferString(m.Encode()))
     if err != nil {
-        log.Print("Unable to retrieve generate authorization code uri")
+        LogError("Unable to retrieve generate authorization code uri")
         return err
     }
     req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
     r, _, err := MakeRequest(p.client, req)
     //r, err := http.PostForm(url, m)
     if err != nil {
-        log.Print("Unable to retrieve generate authorization code uri")
+        LogError("Unable to retrieve generate authorization code uri")
         return err
     }
     return p.ReadAccessTokenFromResponse(r, now)
@@ -276,12 +275,12 @@ func (p *facebookClient) HandleClientAcceptRequest(req *http.Request) os.Error {
     q := req.URL.Query()
     error := q.Get("error")
     if len(error) > 0 {
-        log.Print("Received error in client accept request")
+        LogError("Received error in client accept request")
         return os.NewError(error)
     }
     code := q.Get("code")
     if len(code) <= 0 {
-        log.Print("Received no code in client accept request")
+        LogError("Received no code in client accept request")
         return os.NewError("Expected URL parameter \"code\" in request but not found")
     }
     return p.HandleClientAccept(code)
@@ -297,7 +296,7 @@ func (p *facebookClient) AccessToken() (string, os.Error) {
         m.Add("grant_type", "refresh_token")
         req, err := http.NewRequest(_FACEBOOK_REFRESH_TOKEN_METHOD, _FACEBOOK_REFRESH_TOKEN_URL, bytes.NewBufferString(m.Encode()))
         if err != nil {
-            log.Print("Unable to retrieve generate authorization code uri")
+            LogError("Unable to retrieve generate authorization code uri")
             return "", err
         }
         req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -351,7 +350,7 @@ func (p *facebookClient) GenerateRequestTokenUrl(properties jsonhelper.JSONObjec
 
 func (p *facebookClient) RequestTokenGranted(req *http.Request) bool {
     if err := p.HandleClientAcceptRequest(req); err != nil {
-        log.Print("Error in client accept request: ", err.String())
+        LogError("Error in client accept request: ", err.String())
         return false
     }
     return true

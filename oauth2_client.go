@@ -157,10 +157,14 @@ func MakeRequest(client *http.Client, req *http.Request) (*http.Response, *http.
         client = new(http.Client)
     }
     dump, _ := http.DumpRequest(req, true)
-    log.Print("Making Request:", "\n=================================\n", string(dump), "=================================\n")
+    if EnableLogHttpRequests {
+        log.Print("Making Request:", "\n=================================\n", string(dump), "=================================\n")
+    }
     resp, err := client.Do(req)
     dump2, _ := http.DumpResponse(resp, true)
-    log.Print("Received Response:", "\n=================================\n", string(dump2), "=================================\n")
+    if EnableLogHttpResponses {
+        log.Print("Received Response:", "\n=================================\n", string(dump2), "=================================\n")
+    }
     return resp, req, err
 }
 

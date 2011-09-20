@@ -87,11 +87,11 @@ func HandleClientAccept(w http.ResponseWriter, req *http.Request) {
     var reader io.Reader = nil
     props := getProperties()
     q := req.URL.Query()
-    log.Print("=================================")
-    log.Print("Received request from User: ")
+    oauth2_client.LogInfo("=================================")
+    oauth2_client.LogInfo("Received request from User: ")
     reqBytes, _ := http.DumpRequest(req, true)
-    log.Print(string(reqBytes))
-    log.Print("=================================")
+    oauth2_client.LogInfo(string(reqBytes))
+    oauth2_client.LogInfo("=================================")
     if site := q.Get("site"); len(site) > 0 {
         if index := strings.Index(site, "?"); index >= 0 {
             site = site[0:index]
@@ -137,10 +137,10 @@ func HandleClientAccept(w http.ResponseWriter, req *http.Request) {
         io.WriteString(w, err.String())
         return
     }
-    log.Print("Retrieving User Info...")
+    oauth2_client.LogInfo("Retrieving User Info...")
     userInfo, err3 := c.RetrieveUserInfo()
-    log.Printf("UserInfo: %T %v", userInfo, userInfo)
-    log.Printf("Error: %T %v", err3, err3)
+    oauth2_client.LogInfof("UserInfo: %T %v", userInfo, userInfo)
+    oauth2_client.LogInfof("Error: %T %v", err3, err3)
     
     r, _, err2 := oauth2_client.AuthorizedRequest(c, method, headers, uri, query, reader)
     if err2 != nil {

@@ -6,6 +6,7 @@ GOFILES=\
     facebook.go\
     google.go\
     linkedin.go\
+    log.go\
     oauth1_client.go\
     oauth2_client.go\
     smugmug.go\

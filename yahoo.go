@@ -5,7 +5,6 @@ import (
     "http"
     "io"
     "json"
-    "log"
     "os"
     "strconv"
     "time"
@@ -248,8 +247,8 @@ func (p *yahooClient) CreateAuthorizedRequest(method string, headers http.Header
 
 
 func (p *yahooClient) ParseRequestTokenResult(value string) (AuthToken, os.Error) {
-    log.Print("+++++++++++++++++++++++++++++++")
-    log.Print("Yahoo! Client parsing request token result")
+    LogDebug("+++++++++++++++++++++++++++++++")
+    LogDebug("Yahoo! Client parsing request token result")
     t := new(yahooRequestTokenResult)
     m, err := url.ParseQuery(value)
     if m != nil {
@@ -266,14 +265,14 @@ func (p *yahooClient) ParseRequestTokenResult(value string) (AuthToken, os.Error
             err = os.NewError(m.Get("oauth_problem"))
         }
     }
-    log.Print("+++++++++++++++++++++++++++++++")
+    LogDebug("+++++++++++++++++++++++++++++++")
     return t, err
 }
 
 
 func (p *yahooClient) ParseAccessTokenResult(value string) (AuthToken, os.Error) {
-    log.Print("+++++++++++++++++++++++++++++++")
-    log.Print("Yahoo! Client parsing access token result")
+    LogDebug("+++++++++++++++++++++++++++++++")
+    LogDebug("Yahoo! Client parsing access token result")
     t := new(yahooAccessTokenResult)
     m, err := url.ParseQuery(value)
     if m != nil {
@@ -290,7 +289,7 @@ func (p *yahooClient) ParseAccessTokenResult(value string) (AuthToken, os.Error)
             err = os.NewError(m.Get("oauth_problem"))
         }
     }
-    log.Print("+++++++++++++++++++++++++++++++")
+    LogDebug("+++++++++++++++++++++++++++++++")
     return t, err
 }
 

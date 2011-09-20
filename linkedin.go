@@ -3,7 +3,6 @@ package oauth2_client
 import (
     "github.com/pomack/jsonhelper"
     "http"
-    "log"
     "io"
     "json"
     "os"
@@ -137,8 +136,8 @@ func (p *linkedInClient) CreateAuthorizedRequest(method string, headers http.Hea
 
 
 func (p *linkedInClient) ParseRequestTokenResult(value string) (AuthToken, os.Error) {
-    log.Print("+++++++++++++++++++++++++++++++")
-    log.Print("LinkedIn Client parsing request token result")
+    LogDebug("+++++++++++++++++++++++++++++++")
+    LogDebug("LinkedIn Client parsing request token result")
     t := new(linkedInRequestTokenResult)
     m, err := url.ParseQuery(value)
     if m != nil {
@@ -155,14 +154,14 @@ func (p *linkedInClient) ParseRequestTokenResult(value string) (AuthToken, os.Er
             err = os.NewError(m.Get("oauth_problem"))
         }
     }
-    log.Print("+++++++++++++++++++++++++++++++")
+    LogDebug("+++++++++++++++++++++++++++++++")
     return t, err
 }
 
 
 func (p *linkedInClient) ParseAccessTokenResult(value string) (AuthToken, os.Error) {
-    log.Print("+++++++++++++++++++++++++++++++")
-    log.Print("LinkedIn Client parsing access token result")
+    LogDebug("+++++++++++++++++++++++++++++++")
+    LogDebug("LinkedIn Client parsing access token result")
     t := new(linkedInAccessTokenResult)
     m, err := url.ParseQuery(value)
     if m != nil {
@@ -177,7 +176,7 @@ func (p *linkedInClient) ParseAccessTokenResult(value string) (AuthToken, os.Err
             err = os.NewError(m.Get("oauth_problem"))
         }
     }
-    log.Print("+++++++++++++++++++++++++++++++")
+    LogDebug("+++++++++++++++++++++++++++++++")
     return t, err
 }
 

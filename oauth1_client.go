@@ -12,7 +12,6 @@ import (
     "http"
     "io"
     "io/ioutil"
-    "log"
     "os"
     "sort"
     "strconv"
@@ -219,7 +218,7 @@ func oauth1PrepareRequest(p OAuth1Client, credentials AuthToken, method, uri str
 	encodedSum := make([]byte, base64.StdEncoding.EncodedLen(len(sum)))
 	base64.StdEncoding.Encode(encodedSum, sum)
     signature := strings.TrimSpace(string(encodedSum))
-    log.Print("Generated signature: \"", signature, "\", with key: \"", key, "\" and message: \"", message, "\"")
+    LogDebug("Generated signature: \"", signature, "\", with key: \"", key, "\" and message: \"", message, "\"")
     params.Set("oauth_signature", signature)
     return params
 }
@@ -349,7 +348,7 @@ func oauth1RequestToken(p OAuth1Client, client *http.Client, credentials AuthTok
     if len(auth_secret) <= 0 && len(credentials.Secret()) > 0 {
         auth_secret = credentials.Secret()
     }
-    log.Print("Using auth_token: ", auth_token, ", auth_secret: ", auth_secret, ", oauth_verifier: ", auth_verifier)
+    LogDebug("Using auth_token: ", auth_token, ", auth_secret: ", auth_secret, ", oauth_verifier: ", auth_verifier)
     cred := &stdAuthToken{token:auth_token, secret:auth_secret}
     additional_params := make(url.Values)
     if len(auth_verifier) > 0 {
@@ -406,8 +405,8 @@ func oauth1GenerateRequestTokenUrl(p OAuth1Client, properties jsonhelper.JSONObj
         properties = jsonhelper.NewJSONObject()
     }
     cred, err := getAuthToken(p)
-    log.Printf("Received credentials: %T -> %v", cred, cred)
-    log.Print("Received err: ", err)
+    LogDebugf("Received credentials: %T -> %v", cred, cred)
+    LogDebug("Received err: ", err)
     if cred == nil || err != nil {
         return ""
     }
@@ -456,7 +455,7 @@ func oauth1ExchangeRequestTokenForAccess(p OAuth1Client, req *http.Request) os.E
         return err
     }
     if newCredentials != nil && len(newCredentials.Token()) > 0 && len(newCredentials.Secret()) > 0 {
-        log.Printf("Setting current credentials to: %T -> %v", newCredentials, newCredentials)
+        LogInfof("Setting current credentials to: %T -> %v", newCredentials, newCredentials)
         p.SetCurrentCredentials(newCredentials)
     } else if len(body) > 0 {
         return os.NewError(body)

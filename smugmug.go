@@ -5,7 +5,6 @@ import (
     "http"
     "io"
     "json"
-    "log"
     "os"
     "strconv"
     "strings"
@@ -55,7 +54,7 @@ func (p *smugMugUserInfoResult) AccountType() string { return p.accountType }
 func (p *smugMugUserInfoResult) FileSizeLimit() int64 { return p.fileSizeLimit }
 func (p *smugMugUserInfoResult) SmugVault() bool { return p.smugVault }
 func (p *smugMugUserInfoResult) FromJSON(props jsonhelper.JSONObject) {
-    log.Print("user info result from json: ", props)
+    LogDebug("user info result from json: ", props)
     p.id = props.GetAsInt64("id")
     p.accountStatus = props.GetAsString("AccountStatus")
     p.accountType = props.GetAsString("AccountType")
@@ -146,17 +145,17 @@ func (p *smugMugClient) CreateAuthorizedRequest(method string, headers http.Head
 
 
 func (p *smugMugClient) ParseRequestTokenResult(value string) (AuthToken, os.Error) {
-    log.Print("+++++++++++++++++++++++++++++++")
-    log.Print("SmugMug! Client parsing request token result")
+    LogDebug("+++++++++++++++++++++++++++++++")
+    LogDebug("SmugMug! Client parsing request token result")
     t, err := defaultOAuth1ParseAuthToken(value)
-    log.Print("+++++++++++++++++++++++++++++++")
+    LogDebug("+++++++++++++++++++++++++++++++")
     return t, err
 }
 
 
 func (p *smugMugClient) ParseAccessTokenResult(value string) (AuthToken, os.Error) {
-    log.Print("+++++++++++++++++++++++++++++++")
-    log.Print("SmugMug! Client parsing access token result")
+    LogDebug("+++++++++++++++++++++++++++++++")
+    LogDebug("SmugMug! Client parsing access token result")
     t := new(smugMugAccessTokenResult)
     m, err := url.ParseQuery(value)
     if m != nil {
@@ -173,7 +172,7 @@ func (p *smugMugClient) ParseAccessTokenResult(value string) (AuthToken, os.Erro
             err = os.NewError(m.Get("oauth_problem"))
         }
     }
-    log.Print("+++++++++++++++++++++++++++++++")
+    LogDebug("+++++++++++++++++++++++++++++++")
     return t, err
 }
 
