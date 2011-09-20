@@ -5,6 +5,11 @@ import (
 )
 
 const (
+    GET = "GET"
+    POST = "POST"
+    PUT = "PUT"
+    DELETE = "DELETE"
+    
     GOOGLE_SCOPE_FEEDS = "https://www.google.com/m8/feeds/"
     
     GOOGLE_DATETIME_FORMAT = "2006-01-02T15:04:05.000Z"

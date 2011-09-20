@@ -32,15 +32,15 @@ type OAuth2Client interface {
 }
 
 func AuthorizedGetRequest(client OAuth2Client, headers http.Header, uri string, query url.Values) (*http.Response, *http.Request, os.Error) {
-    return AuthorizedRequest(client, "GET", headers, uri, query, nil)
+    return AuthorizedRequest(client, GET, headers, uri, query, nil)
 }
 
 func AuthorizedPostRequestString(client OAuth2Client, headers http.Header, uri string, query url.Values, data string) (*http.Response, *http.Request, os.Error) {
-    return AuthorizedRequestBytes(client, "POST", headers, uri, query, []byte(data))
+    return AuthorizedRequestBytes(client, POST, headers, uri, query, []byte(data))
 }
 
 func AuthorizedPostRequestBytes(client OAuth2Client, headers http.Header, uri string, query url.Values, data []byte) (*http.Response, *http.Request, os.Error) {
-    return AuthorizedRequestBytes(client, "POST", headers, uri, query, data)
+    return AuthorizedRequestBytes(client, POST, headers, uri, query, data)
 }
 
 func AuthorizedPostFormRequest(client OAuth2Client, headers http.Header, uri string, query url.Values, data url.Values) (*http.Response, *http.Request, os.Error) {
@@ -54,27 +54,27 @@ func AuthorizedPostFormRequest(client OAuth2Client, headers http.Header, uri str
     if v, ok := headers["Content-Type"]; !ok || len(v) <= 0 {
         headers.Set("Content-Type", "application/x-www-form-urlencoded")
     }
-    return AuthorizedRequestBytes(client, "POST", headers, uri, query, bytes)
+    return AuthorizedRequestBytes(client, POST, headers, uri, query, bytes)
 }
 
 func AuthorizedPostRequest(client OAuth2Client, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Response, *http.Request, os.Error) {
-    return AuthorizedRequest(client, "POST", headers, uri, query, r)
+    return AuthorizedRequest(client, POST, headers, uri, query, r)
 }
 
 func AuthorizedPutRequestString(client OAuth2Client, headers http.Header, uri string, query url.Values, data string) (*http.Response, *http.Request, os.Error) {
-    return AuthorizedRequestBytes(client, "PUT", headers, uri, query, []byte(data))
+    return AuthorizedRequestBytes(client, PUT, headers, uri, query, []byte(data))
 }
 
 func AuthorizedPutRequestBytes(client OAuth2Client, headers http.Header, uri string, query url.Values, data []byte) (*http.Response, *http.Request, os.Error) {
-    return AuthorizedRequestBytes(client, "PUT", headers, uri, query, data)
+    return AuthorizedRequestBytes(client, PUT, headers, uri, query, data)
 }
 
 func AuthorizedPutRequest(client OAuth2Client, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Response, *http.Request, os.Error) {
-    return AuthorizedRequest(client, "PUT", headers, uri, query, r)
+    return AuthorizedRequest(client, PUT, headers, uri, query, r)
 }
 
 func AuthorizedDeleteRequest(client OAuth2Client, headers http.Header, uri string, query url.Values) (*http.Response, *http.Request, os.Error) {
-    return AuthorizedRequest(client, "DELETE", headers, uri, query, nil)
+    return AuthorizedRequest(client, DELETE, headers, uri, query, nil)
 }
 
 func AuthorizedRequestBytes(client OAuth2Client, method string, headers http.Header, uri string, query url.Values, data []byte) (*http.Response, *http.Request, os.Error) {
@@ -87,7 +87,7 @@ func AuthorizedRequestBytes(client OAuth2Client, method string, headers http.Hea
 
 func AuthorizedRequest(client OAuth2Client, method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Response, *http.Request, os.Error) {
     if len(method) <= 0 {
-        method = "GET"
+        method = GET
     }
     method = strings.ToUpper(method)
     if headers == nil {

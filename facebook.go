@@ -369,7 +369,7 @@ func (p *facebookClient) ExchangeRequestTokenForAccess(req *http.Request) os.Err
 
 func (p *facebookClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error) {
     if len(method) <= 0 {
-        method = "GET"
+        method = GET
     }
     method = strings.ToUpper(method)
     if headers == nil {

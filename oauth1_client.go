@@ -156,7 +156,7 @@ func (p *stdOAuth1Client) SetCurrentCredentials(value AuthToken)    { p.currentC
 
 func oauth1PrepareRequest(p OAuth1Client, credentials AuthToken, method, uri string, additional_params url.Values, timestamp *time.Time, nonce string) url.Values {
     if len(method) <= 0 {
-        method = "GET"
+        method = GET
     }
     theurl, _ := url.Parse(uri)
     params := make(url.Values)
@@ -254,7 +254,7 @@ func oauth1GenerateRequest(p OAuth1Client, credentials AuthToken, headers http.H
         }
         headers.Set("Authorization", fmt.Sprintf(`OAuth %soauth_nonce="%s",oauth_timestamp="%s",oauth_version="%s",oauth_signature_method="%s",oauth_consumer_key="%s",oauth_token="%s",oauth_signature="%s"`, oauth_realm, url.QueryEscape(oauth_nonce), url.QueryEscape(oauth_timestamp), url.QueryEscape(oauth_version), url.QueryEscape(oauth_signature_method), url.QueryEscape(oauth_consumer_key), url.QueryEscape(oauth_token), url.QueryEscape(oauth_signature)))
     }
-    if method == "GET" {
+    if method == GET {
         if protected {
             finalUri = MakeUrl(uri, additional_params)
         } else {
@@ -466,7 +466,7 @@ func oauth1ExchangeRequestTokenForAccess(p OAuth1Client, req *http.Request) os.E
 
 func oauth1CreateAuthorizedRequest(p OAuth1Client, method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error) {
     if len(method) <= 0 {
-        method = "GET"
+        method = GET
     }
     method = strings.ToUpper(method)
     if headers == nil {
