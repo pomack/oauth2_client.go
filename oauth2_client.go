@@ -116,7 +116,7 @@ func AuthorizedRequest(client OAuth2Client, method string, headers http.Header, 
     if err != nil {
         return nil, req, err
     }
-    return makeRequest(client.Client(), req)
+    return MakeRequest(client.Client(), req)
 }
 
 func splitUrl(uri string, query url.Values) (string, url.Values) {
@@ -138,7 +138,7 @@ func splitUrl(uri string, query url.Values) (string, url.Values) {
     return parts[0], query
 }
 
-func makeUrl(uri string, query url.Values) string {
+func MakeUrl(uri string, query url.Values) string {
     var fullUri string
     if len(query) > 0 {
         if strings.Contains(uri, "?") {
@@ -152,7 +152,7 @@ func makeUrl(uri string, query url.Values) string {
     return fullUri
 }
 
-func makeRequest(client *http.Client, req *http.Request) (*http.Response, *http.Request, os.Error) {
+func MakeRequest(client *http.Client, req *http.Request) (*http.Response, *http.Request, os.Error) {
     if client == nil {
         client = new(http.Client)
     }

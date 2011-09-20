@@ -187,7 +187,7 @@ func (p *linkedInClient) RetrieveUserInfo() (UserInfo, os.Error) {
         return nil, err
     }
     result := new(linkedInUserInfoResult)
-    resp, _, err := makeRequest(p.client, req)
+    resp, _, err := MakeRequest(p.client, req)
     if resp != nil && resp.Body != nil {
         props := jsonhelper.NewJSONObject()
         if err2 := json.NewDecoder(resp.Body).Decode(&props); err == nil {

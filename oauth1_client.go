@@ -256,9 +256,9 @@ func oauth1GenerateRequest(p OAuth1Client, credentials AuthToken, headers http.H
     }
     if method == "GET" {
         if protected {
-            finalUri = makeUrl(uri, additional_params)
+            finalUri = MakeUrl(uri, additional_params)
         } else {
-            finalUri = makeUrl(finalUri, v)
+            finalUri = MakeUrl(finalUri, v)
         }
         r = nil
     } else {
@@ -282,11 +282,11 @@ func OAuth1MakeSyncRequest(p OAuth1Client, credentials AuthToken, headers http.H
     if err != nil {
         return nil, req, err
     }
-    return makeRequest(p.Client(), req)
+    return MakeRequest(p.Client(), req)
 }
 
 func MakeAsyncRequest(p OAuth1Client, req *http.Request, handler RequestHandler) {
-    resp, _, err := makeRequest(p.Client(), req)
+    resp, _, err := MakeRequest(p.Client(), req)
     if handler != nil {
         handler(resp, req, err)
     }

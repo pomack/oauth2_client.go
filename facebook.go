@@ -263,7 +263,7 @@ func (p *facebookClient) HandleClientAccept(code string) os.Error {
         return err
     }
     req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-    r, _, err := makeRequest(p.client, req)
+    r, _, err := MakeRequest(p.client, req)
     //r, err := http.PostForm(url, m)
     if err != nil {
         log.Print("Unable to retrieve generate authorization code uri")
@@ -301,7 +301,7 @@ func (p *facebookClient) AccessToken() (string, os.Error) {
             return "", err
         }
         req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-        r, _, err := makeRequest(p.client, req)
+        r, _, err := MakeRequest(p.client, req)
         //r, err := http.PostForm("https://accounts.google.com/o/oauth2/token", m)
         if err != nil {
             return "", err
@@ -346,7 +346,7 @@ func (p *facebookClient) GenerateRequestTokenUrl(properties jsonhelper.JSONObjec
     } else if len(p.state) > 0 {
         m.Add("state", p.state)
     }
-    return makeUrl(_FACEBOOK_ACCESS_TOKEN_URL, m)
+    return MakeUrl(_FACEBOOK_ACCESS_TOKEN_URL, m)
 }
 
 func (p *facebookClient) RequestTokenGranted(req *http.Request) bool {
@@ -383,7 +383,7 @@ func (p *facebookClient) CreateAuthorizedRequest(method string, headers http.Hea
         return nil, err
     }
     query.Set("access_token", accessToken)
-    fullUrl := makeUrl(uri, query)
+    fullUrl := MakeUrl(uri, query)
     return http.NewRequest(method, fullUrl, r)
 }
 
@@ -393,7 +393,7 @@ func (p *facebookClient) RetrieveUserInfo() (UserInfo, os.Error) {
         return nil, err
     }
     result := new(facebookUserInfoResult)
-    resp, _, err := makeRequest(p.client, req)
+    resp, _, err := MakeRequest(p.client, req)
     if resp != nil && resp.Body != nil {
         if err2 := json.NewDecoder(resp.Body).Decode(&result); err == nil {
             err = err2

@@ -177,7 +177,7 @@ func (p *googleClient) handleClientAccept(code string) os.Error {
         return err
     }
     req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-    r, _, err := makeRequest(p.client, req)
+    r, _, err := MakeRequest(p.client, req)
     //r, err := http.PostForm(url, m)
     if err != nil {
         log.Print("Unable to retrieve generate authorization code uri")
@@ -226,7 +226,7 @@ func (p *googleClient) AccessToken() (string, os.Error) {
             return "", err
         }
         req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-        r, _, err := makeRequest(p.client, req)
+        r, _, err := MakeRequest(p.client, req)
         //r, err := http.PostForm(uri, m)
         if err != nil {
             return "", err
@@ -278,7 +278,7 @@ func (p *googleClient) GenerateRequestTokenUrl(properties jsonhelper.JSONObject)
     } else if len(p.state) > 0 {
         m.Add("state", p.state)
     }
-    return makeUrl(_GOOGLE_ACCESS_TOKEN_URL, m)
+    return MakeUrl(_GOOGLE_ACCESS_TOKEN_URL, m)
 }
 
 func (p *googleClient) RequestTokenGranted(req *http.Request) bool {
@@ -314,8 +314,9 @@ func (p *googleClient) CreateAuthorizedRequest(method string, headers http.Heade
     if err != nil {
         return nil, err
     }
+    headers.Set("GData-Version", "3.0")
     headers.Set("Authorization", "Bearer " + accessToken)
-    fullUrl := makeUrl(uri, query)
+    fullUrl := MakeUrl(uri, query)
     req, err := http.NewRequest(method, fullUrl, r)
     if req != nil {
         req.Header = headers
@@ -329,7 +330,7 @@ func (p *googleClient) RetrieveUserInfo() (UserInfo, os.Error) {
         return nil, err
     }
     result := new(googleUserInfoResult)
-    resp, _, err := makeRequest(p.client, req)
+    resp, _, err := MakeRequest(p.client, req)
     if resp != nil && resp.Body != nil {
         props := jsonhelper.NewJSONObject()
         if err2 := json.NewDecoder(resp.Body).Decode(&props); err == nil {
