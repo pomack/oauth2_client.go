@@ -52,25 +52,25 @@ const (
         <form method="POST" action="/google/test/">
         <p>
             <label for="google.client.access_token">Access Token:</label>
-            <input type="text" name="google.client.access_token" value="{{.c.AccessToken}}" size="80"/><br/>
+            <input type="text" name="google.client.access_token" value="{{.c.AccessToken|html}}" size="80"/><br/>
             
             <label for="google.client.expires_at">Expires At:</label>
-            <input type="text" name="google.client.expires_at" value="{{.c.ExpiresAtString}}" readonly="readonly" size="80"/><br/>
+            <input type="text" name="google.client.expires_at" value="{{.c.ExpiresAtString|html}}" readonly="readonly" size="80"/><br/>
             
             <label for="google.client.token_type">Token Type:</label>
-            <input type="text" name="google.client.token_type" value="{{.c.TokenType}}" readonly="readonly" size="80"/><br/>
+            <input type="text" name="google.client.token_type" value="{{.c.TokenType|html}}" readonly="readonly" size="80"/><br/>
             
             <label for="google.client.refresh_token">Refresh Token:</label>
-            <input type="text" name="google.client.refresh_token" value="{{.c.RefreshToken}}" size="80"/><br/>
+            <input type="text" name="google.client.refresh_token" value="{{.c.RefreshToken|html}}" size="80"/><br/>
             
             <label for="google.client.test_url">URL:</label>
-            <input type="text" name="google.client.test_url" value="{{.url}}" size="120"/><br/>
+            <input type="text" name="google.client.test_url" value="{{.url|html}}" size="120"/><br/>
             
             <input type="submit" name="submit" value="Submit"/>
         </p>
         </form>
         <div>
-            <pre>{{.output}}</pre>
+            <pre>{{.output|html}}</pre>
         </div>
     </body>
 </html>
@@ -93,19 +93,19 @@ const (
         <form method="POST" action="/facebook/test/">
         <p>
             <label for="facebook.client.access_token">Access Token:</label>
-            <input type="text" name="facebook.client.access_token" value="{{.c.AccessToken}}" size="160"/><br/>
+            <input type="text" name="facebook.client.access_token" value="{{.c.AccessToken|html}}" size="160"/><br/>
             
             <label for="facebook.client.expires_at">Expires At:</label>
-            <input type="text" name="facebook.client.expires_at" value="{{.c.ExpiresAtString}}" readonly="readonly" size="40"/><br/>
+            <input type="text" name="facebook.client.expires_at" value="{{.c.ExpiresAtString|html}}" readonly="readonly" size="40"/><br/>
             
             <label for="facebook.client.test_url">URL:</label>
-            <input type="text" name="facebook.client.test_url" value="{{.url}}" size="120"/><br/>
+            <input type="text" name="facebook.client.test_url" value="{{.url|html}}" size="120"/><br/>
             
             <input type="submit" name="submit" value="Submit"/>
         </p>
         </form>
         <div>
-            <pre>{{.output}}</pre>
+            <pre>{{.output|html}}</pre>
         </div>
     </body>
 </html>
@@ -128,19 +128,19 @@ const (
         <form method="POST" action="/linkedin/test/">
         <p>
             <label for="linkedin.client.token">Token:</label>
-            <input type="text" name="linkedin.client.token" value="{{.c.CurrentCredentials.Token}}" size="80"/><br/>
+            <input type="text" name="linkedin.client.token" value="{{.c.CurrentCredentials.Token|html}}" size="80"/><br/>
             
             <label for="linkedin.client.secret">Secret:</label>
-            <input type="text" name="linkedin.client.secret" value="{{.c.CurrentCredentials.Secret}}" readonly="readonly" size="80"/><br/>
+            <input type="text" name="linkedin.client.secret" value="{{.c.CurrentCredentials.Secret|html}}" readonly="readonly" size="80"/><br/>
             
             <label for="linkedin.client.test_url">URL:</label>
-            <input type="text" name="linkedin.client.test_url" value="{{.url}}" size="120"/><br/>
+            <input type="text" name="linkedin.client.test_url" value="{{.url|html}}" size="120"/><br/>
             
             <input type="submit" name="submit" value="Submit"/>
         </p>
         </form>
         <div>
-            <pre>{{.output}}</pre>
+            <pre>{{.output|html}}</pre>
         </div>
     </body>
 </html>
@@ -163,19 +163,19 @@ const (
         <form method="POST" action="/smugmug/test/">
         <p>
             <label for="smugmug.client.token">Token:</label>
-            <input type="text" name="smugmug.client.token" value="{{.c.CurrentCredentials.Token}}" size="80"/><br/>
+            <input type="text" name="smugmug.client.token" value="{{.c.CurrentCredentials.Token|html}}" size="80"/><br/>
             
             <label for="smugmug.client.secret">Secret:</label>
-            <input type="text" name="smugmug.client.secret" value="{{.c.CurrentCredentials.Secret}}" readonly="readonly" size="80"/><br/>
+            <input type="text" name="smugmug.client.secret" value="{{.c.CurrentCredentials.Secret|html}}" readonly="readonly" size="80"/><br/>
             
             <label for="smugmug.client.test_url">URL:</label>
-            <input type="text" name="smugmug.client.test_url" value="{{.url}}" size="120"/><br/>
+            <input type="text" name="smugmug.client.test_url" value="{{.url|html}}" size="120"/><br/>
             
             <input type="submit" name="submit" value="Submit"/>
         </p>
         </form>
         <div>
-            <pre>{{.output}}</pre>
+            <pre>{{.output|html}}</pre>
         </div>
     </body>
 </html>
@@ -198,19 +198,19 @@ const (
         <form method="POST" action="/twitter/test/">
         <p>
             <label for="twitter.client.token">Token:</label>
-            <input type="text" name="twitter.client.token" value="{{.c.CurrentCredentials.Token}}" size="80"/><br/>
+            <input type="text" name="twitter.client.token" value="{{.c.CurrentCredentials.Token|html}}" size="80"/><br/>
             
             <label for="twitter.client.secret">Secret:</label>
-            <input type="text" name="twitter.client.secret" value="{{.c.CurrentCredentials.Secret}}" readonly="readonly" size="80"/><br/>
+            <input type="text" name="twitter.client.secret" value="{{.c.CurrentCredentials.Secret|html}}" readonly="readonly" size="80"/><br/>
             
             <label for="twitter.client.test_url">URL:</label>
-            <input type="text" name="twitter.client.test_url" value="{{.url}}" size="120"/><br/>
+            <input type="text" name="twitter.client.test_url" value="{{.url|html}}" size="120"/><br/>
             
             <input type="submit" name="submit" value="Submit"/>
         </p>
         </form>
         <div>
-            <pre>{{.output}}</pre>
+            <pre>{{.output|html}}</pre>
         </div>
     </body>
 </html>
@@ -233,19 +233,19 @@ const (
         <form method="POST" action="/yahoo/test/">
         <p>
             <label for="yahoo.client.token">Token:</label>
-            <input type="text" name="yahoo.client.token" value="{{.c.CurrentCredentials.Token}}" size="80"/><br/>
+            <input type="text" name="yahoo.client.token" value="{{.c.CurrentCredentials.Token|html}}" size="80"/><br/>
             
             <label for="yahoo.client.secret">Secret:</label>
-            <input type="text" name="yahoo.client.secret" value="{{.c.CurrentCredentials.Secret}}" readonly="readonly" size="80"/><br/>
+            <input type="text" name="yahoo.client.secret" value="{{.c.CurrentCredentials.Secret|html}}" readonly="readonly" size="80"/><br/>
             
             <label for="yahoo.client.test_url">URL:</label>
-            <input type="text" name="yahoo.client.test_url" value="{{.url}}" size="120"/><br/>
+            <input type="text" name="yahoo.client.test_url" value="{{.url|html}}" size="120"/><br/>
             
             <input type="submit" name="submit" value="Submit"/>
         </p>
         </form>
         <div>
-            <pre>{{.output}}</pre>
+            <pre>{{.output|html}}</pre>
         </div>
     </body>
 </html>
