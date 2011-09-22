@@ -93,6 +93,9 @@ func (p *linkedInClient) AuthorizationUrl() string { return _LINKEDIN_AUTHORIZAT
 func (p *linkedInClient) AuthorizedResourceProtected() bool { return _LINKEDIN_AUTHORIZED_RESOURCE_PROTECTED }
 func (p *linkedInClient) ServiceId() string { return "linkedin.com" }
 func (p *linkedInClient) Initialize(properties jsonhelper.JSONObject) {
+    if p.currentCredentials == nil {
+        p.currentCredentials = NewStandardAuthToken()
+    }
     if properties == nil {
         return
     }
@@ -109,6 +112,12 @@ func (p *linkedInClient) Initialize(properties jsonhelper.JSONObject) {
     }
     if v := properties.GetAsString("linkedin.oauth1.scope"); len(v) > 0 {
         //p.Scope = v
+    }
+    if v := properties.GetAsString("linkedin.client.token"); len(v) > 0 {
+        p.currentCredentials.SetToken(v)
+    }
+    if v := properties.GetAsString("linkedin.client.secret"); len(v) > 0 {
+        p.currentCredentials.SetSecret(v)
     }
 }
 

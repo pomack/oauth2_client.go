@@ -207,6 +207,9 @@ func (p *yahooClient) AuthorizationUrl() string { return _YAHOO_AUTHORIZATION_PA
 func (p *yahooClient) AuthorizedResourceProtected() bool { return _YAHOO_AUTHORIZED_RESOURCE_PROTECTED }
 func (p *yahooClient) ServiceId() string { return "yahoo.com" }
 func (p *yahooClient) Initialize(properties jsonhelper.JSONObject) {
+    if p.currentCredentials == nil {
+        p.currentCredentials = NewStandardAuthToken()
+    }
     if properties == nil {
         return
     }
@@ -226,6 +229,12 @@ func (p *yahooClient) Initialize(properties jsonhelper.JSONObject) {
     }
     if v := properties.GetAsString("yahoo.oauth1.scope"); len(v) > 0 {
         //p.Scope = v
+    }
+    if v := properties.GetAsString("yahoo.client.token"); len(v) > 0 {
+        p.currentCredentials.SetToken(v)
+    }
+    if v := properties.GetAsString("yahoo.client.secret"); len(v) > 0 {
+        p.currentCredentials.SetSecret(v)
     }
 }
 

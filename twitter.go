@@ -140,6 +140,9 @@ func (p *twitterClient) AuthorizationUrl() string { return _TWITTER_AUTHORIZATIO
 func (p *twitterClient) AuthorizedResourceProtected() bool { return _TWITTER_AUTHORIZED_RESOURCE_PROTECTED }
 func (p *twitterClient) ServiceId() string { return "twitter.com" }
 func (p *twitterClient) Initialize(properties jsonhelper.JSONObject) {
+    if p.currentCredentials == nil {
+        p.currentCredentials = NewStandardAuthToken()
+    }
     if properties == nil {
         return
     }
@@ -156,6 +159,12 @@ func (p *twitterClient) Initialize(properties jsonhelper.JSONObject) {
     }
     if v := properties.GetAsString("twitter.oauth1.scope"); len(v) > 0 {
         //p.Scope = v
+    }
+    if v := properties.GetAsString("twitter.client.token"); len(v) > 0 {
+        p.currentCredentials.SetToken(v)
+    }
+    if v := properties.GetAsString("twitter.client.secret"); len(v) > 0 {
+        p.currentCredentials.SetSecret(v)
     }
 }
 

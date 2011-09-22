@@ -141,6 +141,19 @@ type facebookClient struct {
 func NewFacebookClient() *facebookClient {
     return &facebookClient{client:new(http.Client)}
 }
+func (p *facebookClient) ClientId() string { return p.clientId }
+func (p *facebookClient) ClientSecret() string { return p.clientSecret }
+func (p *facebookClient) RedirectUri() string { return p.redirectUri }
+func (p *facebookClient) AccessToken() string { return p.accessToken }
+func (p *facebookClient) ExpiresAt() *time.Time { return p.expiresAt }
+func (p *facebookClient) ExpiresAtString() string {
+    if p.expiresAt == nil {
+        return ""
+    }
+    return p.expiresAt.Format(FACEBOOK_DATETIME_FORMAT)
+}
+func (p *facebookClient) TokenType() string { return p.tokenType }
+func (p *facebookClient) RefreshToken() string { return p.refreshToken }
 
 func (p *facebookClient) ServiceId() string { return "facebook.com" }
 func (p *facebookClient) Client() *http.Client {
@@ -170,8 +183,14 @@ func (p *facebookClient) Initialize(properties jsonhelper.JSONObject) {
         p.accessToken = v.(string)
     }
     if v, ok := properties["facebook.client.expires_at"]; ok {
-        seconds, _ := strconv.Atoi64(v.(string))
-        p.expiresAt = time.SecondsToUTC(time.Seconds() + seconds)
+        seconds, err := strconv.Atoi64(v.(string))
+        if err == nil {
+            p.expiresAt = time.SecondsToUTC(time.Seconds() + seconds)
+        } else {
+            if expiresAt, err := time.Parse(FACEBOOK_DATETIME_FORMAT, v.(string)); err == nil {
+                p.expiresAt = expiresAt
+            }
+        }
     }
     if v, ok := properties["facebook.client.token_type"]; ok {
         p.tokenType = v.(string)
@@ -286,7 +305,7 @@ func (p *facebookClient) HandleClientAcceptRequest(req *http.Request) os.Error {
     return p.HandleClientAccept(code)
 }
 
-func (p *facebookClient) AccessToken() (string, os.Error) {
+func (p *facebookClient) UpdateAccessToken() (string, os.Error) {
     now := time.UTC()
     if p.expiresAt == nil || p.expiresAt.Seconds() <= now.Seconds() {
         m := make(url.Values)
@@ -362,7 +381,7 @@ func (p *facebookClient) ExchangeRequestTokenForAccess(req *http.Request) os.Err
             return err
         }
     }
-    _, err := p.AccessToken()
+    _, err := p.UpdateAccessToken()
     return err
 }
 
@@ -377,7 +396,7 @@ func (p *facebookClient) CreateAuthorizedRequest(method string, headers http.Hea
     if query == nil {
         query = make(url.Values)
     }
-    accessToken, err := p.AccessToken()
+    accessToken, err := p.UpdateAccessToken()
     if err != nil {
         return nil, err
     }

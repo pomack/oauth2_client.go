@@ -98,6 +98,20 @@ func (p *googleClient) Client() *http.Client {
     return p.client
 }
 
+func (p *googleClient) ClientId() string { return p.clientId }
+func (p *googleClient) ClientSecret() string { return p.clientSecret }
+func (p *googleClient) RedirectUri() string { return p.redirectUri }
+func (p *googleClient) AccessToken() string { return p.accessToken }
+func (p *googleClient) ExpiresAt() *time.Time { return p.expiresAt }
+func (p *googleClient) ExpiresAtString() string {
+    if p.expiresAt == nil {
+        return ""
+    }
+    return p.expiresAt.Format(GOOGLE_DATETIME_FORMAT)
+}
+func (p *googleClient) TokenType() string { return p.tokenType }
+func (p *googleClient) RefreshToken() string { return p.refreshToken }
+
 func (p *googleClient) ServiceId() string { return "google.com" }
 func (p *googleClient) Initialize(properties jsonhelper.JSONObject) {
     if properties == nil || len(properties) <= 0 {
@@ -122,8 +136,14 @@ func (p *googleClient) Initialize(properties jsonhelper.JSONObject) {
         p.accessToken = v.(string)
     }
     if v, ok := properties["google.client.expires_at"]; ok {
-        seconds, _ := strconv.Atoi64(v.(string))
-        p.expiresAt = time.SecondsToUTC(time.Seconds() + seconds)
+        seconds, err := strconv.Atoi64(v.(string))
+        if err == nil {
+            p.expiresAt = time.SecondsToUTC(time.Seconds() + seconds)
+        } else {
+            if expiresAt, err := time.Parse(GOOGLE_DATETIME_FORMAT, v.(string)); err == nil {
+                p.expiresAt = expiresAt
+            }
+        }
     }
     if v, ok := properties["google.client.token_type"]; ok {
         p.tokenType = v.(string)
@@ -167,7 +187,7 @@ func (p *googleClient) GenerateAuthorizationCodeUri(code string) (string, url.Va
     return _GOOGLE_AUTHORIZATION_CODE_URL, m
 }
 
-func (p *googleClient) handleClientAccept(code string) os.Error {
+func (p *googleClient) HandleClientAccept(code string) os.Error {
     now := time.UTC()
     url, m := p.GenerateAuthorizationCodeUri(code)
     req, err := http.NewRequest(_GOOGLE_AUTHORIZATION_CODE_METHOD, url, bytes.NewBufferString(m.Encode()))
@@ -182,9 +202,9 @@ func (p *googleClient) handleClientAccept(code string) os.Error {
         LogError("Unable to retrieve generate authorization code uri")
         return err
     }
-    var s googleAuthorizationCodeResponse
-    err2 := json.NewDecoder(r.Body).Decode(&s)
-    LogDebugf("Loaded response %T -> %v", s, s)
+    s := new(googleAuthorizationCodeResponse)
+    err2 := json.NewDecoder(r.Body).Decode(s)
+    LogDebugf("Loaded response %T -> %#v", s, s)
     if err2 != nil {
         LogError("Unable to decode the response from ", r.Body)
         return err2
@@ -192,6 +212,7 @@ func (p *googleClient) handleClientAccept(code string) os.Error {
     if len(s.AccessToken) > 0 && len(s.RefreshToken) > 0 {
         p.expiresAt = time.SecondsToUTC(now.Seconds() + int64(s.ExpiresIn))
         p.accessToken = s.AccessToken
+        p.tokenType = s.TokenType
         p.refreshToken = s.RefreshToken
     }
     return nil
@@ -209,10 +230,10 @@ func (p *googleClient) handleClientAcceptRequest(req *http.Request) os.Error {
         LogError("Received no code in client accept request")
         return os.NewError("Expected URL parameter \"code\" in request but not found")
     }
-    return p.handleClientAccept(code)
+    return p.HandleClientAccept(code)
 }
 
-func (p *googleClient) AccessToken() (string, os.Error) {
+func (p *googleClient) UpdateAccessToken() (string, os.Error) {
     now := time.UTC()
     if p.expiresAt == nil || p.expiresAt.Seconds() <= now.Seconds() {
         m := make(url.Values)
@@ -230,16 +251,18 @@ func (p *googleClient) AccessToken() (string, os.Error) {
         if err != nil {
             return "", err
         }
-        var s googleAuthorizationCodeResponse
-        err2 := json.NewDecoder(r.Body).Decode(&s)
-        LogDebugf("Loaded response %T -> %v", s, s)
+        s := new(googleAuthorizationCodeResponse)
+        err2 := json.NewDecoder(r.Body).Decode(s)
+        LogDebugf("Loaded response %T -> %#v", s, s)
         if err2 != nil {
             return "", err2
         }
-        if len(s.AccessToken) > 0 && len(s.RefreshToken) > 0 {
+        if len(s.AccessToken) > 0 {
             p.expiresAt = time.SecondsToUTC(now.Seconds() + int64(s.ExpiresIn))
             p.accessToken = s.AccessToken
-            p.refreshToken = s.RefreshToken
+            if len(s.RefreshToken) > 0 {
+                p.refreshToken = s.RefreshToken
+            }
         }
     }
     return p.accessToken, nil
@@ -294,7 +317,7 @@ func (p *googleClient) ExchangeRequestTokenForAccess(req *http.Request) os.Error
             return err
         }
     }
-    _, err := p.AccessToken()
+    _, err := p.UpdateAccessToken()
     return err
 }
 
@@ -309,11 +332,10 @@ func (p *googleClient) CreateAuthorizedRequest(method string, headers http.Heade
     if query == nil {
         query = make(url.Values)
     }
-    accessToken, err := p.AccessToken()
+    accessToken, err := p.UpdateAccessToken()
     if err != nil {
         return nil, err
     }
-    headers.Set("GData-Version", "3.0")
     headers.Set("Authorization", "Bearer " + accessToken)
     fullUrl := MakeUrl(uri, query)
     req, err := http.NewRequest(method, fullUrl, r)

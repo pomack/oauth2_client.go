@@ -35,6 +35,10 @@ type stdAuthToken struct {
     secret      string
 }
 
+func NewStandardAuthToken() AuthToken {
+    return &stdAuthToken{}
+}
+
 type OAuth1Client interface {
     OAuth2Client
     CurrentCredentials()            AuthToken

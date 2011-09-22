@@ -102,6 +102,9 @@ func (p *smugMugClient) AuthorizationUrl() string { return _SMUGMUG_AUTHORIZATIO
 func (p *smugMugClient) AuthorizedResourceProtected() bool { return _SMUGMUG_AUTHORIZED_RESOURCE_PROTECTED }
 func (p *smugMugClient) ServiceId() string { return "smugmug.com" }
 func (p *smugMugClient) Initialize(properties jsonhelper.JSONObject) {
+    if p.currentCredentials == nil {
+        p.currentCredentials = NewStandardAuthToken()
+    }
     if properties == nil {
         return
     }
@@ -124,6 +127,12 @@ func (p *smugMugClient) Initialize(properties jsonhelper.JSONObject) {
     }
     if v := properties.GetAsString("smugmug.oauth1.scope"); len(v) > 0 {
         //p.Scope = v
+    }
+    if v := properties.GetAsString("smugmug.client.token"); len(v) > 0 {
+        p.currentCredentials.SetToken(v)
+    }
+    if v := properties.GetAsString("smugmug.client.secret"); len(v) > 0 {
+        p.currentCredentials.SetSecret(v)
     }
 }
 
