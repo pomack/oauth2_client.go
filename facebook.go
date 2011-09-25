@@ -16,29 +16,29 @@ import (
 )
 
 type FacebookAccessTokenResult interface {
-    AccessToken()   string
-    ExpiresAt()     *time.Time
+    AccessToken() string
+    ExpiresAt() *time.Time
 }
 
 type facebookAccessTokenResult struct {
-    accessToken     string
-    expiresAt       *time.Time
+    accessToken string
+    expiresAt   *time.Time
 }
 
-func (p *facebookAccessTokenResult) AccessToken() string { return p.accessToken }
+func (p *facebookAccessTokenResult) AccessToken() string   { return p.accessToken }
 func (p *facebookAccessTokenResult) ExpiresAt() *time.Time { return p.expiresAt }
 
 type FacebookLocation interface {
-    Id()                string
-    Name()              string
+    Id() string
+    Name() string
 }
 
 type facebookLocation struct {
-    id                  string  `json:"id"`
-    name                string  `json:"name"`
+    id   string `json:"id"`
+    name string `json:"name"`
 }
 
-func (p *facebookLocation) Id() string { return p.id }
+func (p *facebookLocation) Id() string   { return p.id }
 func (p *facebookLocation) Name() string { return p.name }
 func (p *facebookLocation) UnmarshalJSON(data []byte) os.Error {
     props := jsonhelper.NewJSONObject()
@@ -54,57 +54,57 @@ func (p *facebookLocation) FromJSON(props jsonhelper.JSONObject) {
 
 type FacebookUserInfoResult interface {
     UserInfo
-    Id()                string
-    Name()              string
-    FirstName()         string
-    LastName()          string
-    Link()              string
-    Hometown()          FacebookLocation
-    Location()          FacebookLocation
-    Gender()            string
-    Email()             string
-    Timezone()          float64
-    Locale()            string
-    Verified()          bool
-    UpdatedTime()       *time.Time
+    Id() string
+    Name() string
+    FirstName() string
+    LastName() string
+    Link() string
+    Hometown() FacebookLocation
+    Location() FacebookLocation
+    Gender() string
+    Email() string
+    Timezone() float64
+    Locale() string
+    Verified() bool
+    UpdatedTime() *time.Time
 }
 
 type facebookUserInfoResult struct {
-    id                  string              `json:"id"`
-    name                string              `json:"name"`
-    firstName           string              `json:"first_name"`
-    lastName            string              `json:"last_name"`
-    link                string              `json:"link"`
-    username            string              `json:"username"`
-    hometown            facebookLocation    `json:"hometown"`
-    location            facebookLocation    `json:"location"`
-    gender              string              `json:"gender"`
-    email               string              `json:"email"`
-    timezone            float64             `json:"timezone"`
-    locale              string              `json:"locale"`
-    verified            bool                `json:"verified"`
-    updatedTime         *time.Time          `json:"updated_time"`
+    id          string           `json:"id"`
+    name        string           `json:"name"`
+    firstName   string           `json:"first_name"`
+    lastName    string           `json:"last_name"`
+    link        string           `json:"link"`
+    username    string           `json:"username"`
+    hometown    facebookLocation `json:"hometown"`
+    location    facebookLocation `json:"location"`
+    gender      string           `json:"gender"`
+    email       string           `json:"email"`
+    timezone    float64          `json:"timezone"`
+    locale      string           `json:"locale"`
+    verified    bool             `json:"verified"`
+    updatedTime *time.Time       `json:"updated_time"`
 }
 
-func (p *facebookUserInfoResult) Guid() string { return p.id }
-func (p *facebookUserInfoResult) Username() string { return p.username }
-func (p *facebookUserInfoResult) GivenName() string { return p.firstName }
-func (p *facebookUserInfoResult) FamilyName() string { return p.lastName }
-func (p *facebookUserInfoResult) DisplayName() string { return p.name }
-func (p *facebookUserInfoResult) Url() string { return p.link }
-func (p *facebookUserInfoResult) Id() string { return p.id }
-func (p *facebookUserInfoResult) Name() string { return p.name }
-func (p *facebookUserInfoResult) FirstName() string { return p.firstName }
-func (p *facebookUserInfoResult) LastName() string { return p.lastName }
-func (p *facebookUserInfoResult) Link() string { return p.link }
+func (p *facebookUserInfoResult) Guid() string               { return p.id }
+func (p *facebookUserInfoResult) Username() string           { return p.username }
+func (p *facebookUserInfoResult) GivenName() string          { return p.firstName }
+func (p *facebookUserInfoResult) FamilyName() string         { return p.lastName }
+func (p *facebookUserInfoResult) DisplayName() string        { return p.name }
+func (p *facebookUserInfoResult) Url() string                { return p.link }
+func (p *facebookUserInfoResult) Id() string                 { return p.id }
+func (p *facebookUserInfoResult) Name() string               { return p.name }
+func (p *facebookUserInfoResult) FirstName() string          { return p.firstName }
+func (p *facebookUserInfoResult) LastName() string           { return p.lastName }
+func (p *facebookUserInfoResult) Link() string               { return p.link }
 func (p *facebookUserInfoResult) Hometown() FacebookLocation { return &p.hometown }
 func (p *facebookUserInfoResult) Location() FacebookLocation { return &p.location }
-func (p *facebookUserInfoResult) Gender() string { return p.gender }
-func (p *facebookUserInfoResult) Email() string { return p.email }
-func (p *facebookUserInfoResult) Timezone() float64 { return p.timezone }
-func (p *facebookUserInfoResult) Locale() string { return p.locale }
-func (p *facebookUserInfoResult) Verified() bool { return p.verified }
-func (p *facebookUserInfoResult) UpdatedTime() *time.Time { return p.updatedTime }
+func (p *facebookUserInfoResult) Gender() string             { return p.gender }
+func (p *facebookUserInfoResult) Email() string              { return p.email }
+func (p *facebookUserInfoResult) Timezone() float64          { return p.timezone }
+func (p *facebookUserInfoResult) Locale() string             { return p.locale }
+func (p *facebookUserInfoResult) Verified() bool             { return p.verified }
+func (p *facebookUserInfoResult) UpdatedTime() *time.Time    { return p.updatedTime }
 func (p *facebookUserInfoResult) UnmarshalJSON(data []byte) os.Error {
     props := jsonhelper.NewJSONObject()
     err := json.Unmarshal(data, &props)
@@ -126,25 +126,25 @@ func (p *facebookUserInfoResult) UnmarshalJSON(data []byte) os.Error {
 }
 
 type facebookClient struct {
-    client          *http.Client
-    clientId        string "client_id"
-    clientSecret    string "client_secret"
-    redirectUri     string "redirect_uri"
-    scope           string "scope"
-    state           string "state"
-    accessToken     string "access_token"
-    expiresAt       *time.Time "expires_at"
-    tokenType       string "token_type"
-    refreshToken    string "refresh_token"
+    client       *http.Client
+    clientId     string     "client_id"
+    clientSecret string     "client_secret"
+    redirectUri  string     "redirect_uri"
+    scope        string     "scope"
+    state        string     "state"
+    accessToken  string     "access_token"
+    expiresAt    *time.Time "expires_at"
+    tokenType    string     "token_type"
+    refreshToken string     "refresh_token"
 }
 
 func NewFacebookClient() *facebookClient {
-    return &facebookClient{client:new(http.Client)}
+    return &facebookClient{client: new(http.Client)}
 }
-func (p *facebookClient) ClientId() string { return p.clientId }
-func (p *facebookClient) ClientSecret() string { return p.clientSecret }
-func (p *facebookClient) RedirectUri() string { return p.redirectUri }
-func (p *facebookClient) AccessToken() string { return p.accessToken }
+func (p *facebookClient) ClientId() string      { return p.clientId }
+func (p *facebookClient) ClientSecret() string  { return p.clientSecret }
+func (p *facebookClient) RedirectUri() string   { return p.redirectUri }
+func (p *facebookClient) AccessToken() string   { return p.accessToken }
 func (p *facebookClient) ExpiresAt() *time.Time { return p.expiresAt }
 func (p *facebookClient) ExpiresAtString() string {
     if p.expiresAt == nil {
@@ -152,7 +152,7 @@ func (p *facebookClient) ExpiresAtString() string {
     }
     return p.expiresAt.Format(FACEBOOK_DATETIME_FORMAT)
 }
-func (p *facebookClient) TokenType() string { return p.tokenType }
+func (p *facebookClient) TokenType() string    { return p.tokenType }
 func (p *facebookClient) RefreshToken() string { return p.refreshToken }
 
 func (p *facebookClient) ServiceId() string { return "facebook.com" }
@@ -257,7 +257,7 @@ func (p *facebookClient) ReadAccessToken(body string, now *time.Time) os.Error {
     if params == nil {
         params = make(url.Values)
     }
-    t := &facebookAccessTokenResult{accessToken:params.Get("access_token")}
+    t := &facebookAccessTokenResult{accessToken: params.Get("access_token")}
     if len(params.Get("expires")) > 0 {
         expiresIn, _ := strconv.Atoi64(params.Get("expires"))
         if expiresIn >= 0 {
@@ -269,7 +269,7 @@ func (p *facebookClient) ReadAccessToken(body string, now *time.Time) os.Error {
         p.accessToken = t.accessToken
     }
     return nil
-    
+
 }
 
 func (p *facebookClient) HandleClientAccept(code string) os.Error {
@@ -419,4 +419,3 @@ func (p *facebookClient) RetrieveUserInfo() (UserInfo, os.Error) {
     }
     return result, err
 }
-

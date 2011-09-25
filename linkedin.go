@@ -14,39 +14,39 @@ import (
 
 type LinkedInRequestTokenResult interface {
     AuthToken
-    RequestAuthUrl()    string
-    ExpiresAt()         *time.Time
+    RequestAuthUrl() string
+    ExpiresAt() *time.Time
     CallbackConfirmed() bool
 }
 
 type LinkedInAccessTokenResult interface {
     AuthToken
-    ExpiresAt()     *time.Time
+    ExpiresAt() *time.Time
 }
 
 type linkedInRequestTokenResult struct {
     stdAuthToken
-    requestAuthUrl      string
-    expiresAt           *time.Time
-    callbackConfirmed   bool
+    requestAuthUrl    string
+    expiresAt         *time.Time
+    callbackConfirmed bool
 }
 
-func (p *linkedInRequestTokenResult) RequestAuthUrl() string { return p.requestAuthUrl }
-func (p *linkedInRequestTokenResult) ExpiresAt() *time.Time { return p.expiresAt }
+func (p *linkedInRequestTokenResult) RequestAuthUrl() string  { return p.requestAuthUrl }
+func (p *linkedInRequestTokenResult) ExpiresAt() *time.Time   { return p.expiresAt }
 func (p *linkedInRequestTokenResult) CallbackConfirmed() bool { return p.callbackConfirmed }
 
 type linkedInAccessTokenResult struct {
     stdAuthToken
-    expiresAt       *time.Time
+    expiresAt *time.Time
 }
 
 func (p *linkedInAccessTokenResult) ExpiresAt() *time.Time { return p.expiresAt }
 
 type linkedInUserInfoResult struct {
-    id                  string
-    firstName           string
-    lastName            string
-    publicProfileUrl    string
+    id               string
+    firstName        string
+    lastName         string
+    publicProfileUrl string
 }
 
 func (p *linkedInUserInfoResult) Guid() string { return p.id }
@@ -54,7 +54,7 @@ func (p *linkedInUserInfoResult) Username() string {
     parts := strings.Split(p.publicProfileUrl, "/")
     return parts[len(parts)-1]
 }
-func (p *linkedInUserInfoResult) GivenName() string { return p.firstName }
+func (p *linkedInUserInfoResult) GivenName() string  { return p.firstName }
 func (p *linkedInUserInfoResult) FamilyName() string { return p.lastName }
 func (p *linkedInUserInfoResult) DisplayName() string {
     if len(p.firstName) > 0 && len(p.lastName) > 0 {
@@ -62,10 +62,10 @@ func (p *linkedInUserInfoResult) DisplayName() string {
     }
     return p.firstName + p.lastName
 }
-func (p *linkedInUserInfoResult) Url() string { return p.publicProfileUrl }
-func (p *linkedInUserInfoResult) Id() string { return p.id }
-func (p *linkedInUserInfoResult) FirstName() string { return p.firstName }
-func (p *linkedInUserInfoResult) LastName() string { return p.lastName }
+func (p *linkedInUserInfoResult) Url() string              { return p.publicProfileUrl }
+func (p *linkedInUserInfoResult) Id() string               { return p.id }
+func (p *linkedInUserInfoResult) FirstName() string        { return p.firstName }
+func (p *linkedInUserInfoResult) LastName() string         { return p.lastName }
 func (p *linkedInUserInfoResult) PublicProfileUrl() string { return p.publicProfileUrl }
 func (p *linkedInUserInfoResult) FromJSON(props jsonhelper.JSONObject) {
     p.id = props.GetAsString("id")
@@ -73,7 +73,6 @@ func (p *linkedInUserInfoResult) FromJSON(props jsonhelper.JSONObject) {
     p.lastName = props.GetAsString("lastName")
     p.publicProfileUrl = props.GetAsString("publicProfileUrl")
 }
-
 
 type linkedInClient struct {
     stdOAuth1Client
@@ -83,14 +82,16 @@ func NewLinkedInClient() OAuth2Client {
     return &linkedInClient{}
 }
 
-func (p *linkedInClient) RequestUrl() string { return _LINKEDIN_REQUEST_TOKEN_URL }
-func (p *linkedInClient) RequestUrlMethod() string { return _LINKEDIN_REQUEST_TOKEN_METHOD }
+func (p *linkedInClient) RequestUrl() string        { return _LINKEDIN_REQUEST_TOKEN_URL }
+func (p *linkedInClient) RequestUrlMethod() string  { return _LINKEDIN_REQUEST_TOKEN_METHOD }
 func (p *linkedInClient) RequestUrlProtected() bool { return _LINKEDIN_REQUEST_TOKEN_PROTECTED }
-func (p *linkedInClient) AccessUrl() string { return _LINKEDIN_ACCESS_TOKEN_URL }
-func (p *linkedInClient) AccessUrlMethod() string  { return _LINKEDIN_ACCESS_TOKEN_METHOD }
-func (p *linkedInClient) AccessUrlProtected() bool { return _LINKEDIN_ACCESS_TOKEN_PROTECTED }
-func (p *linkedInClient) AuthorizationUrl() string { return _LINKEDIN_AUTHORIZATION_PATH_URL }
-func (p *linkedInClient) AuthorizedResourceProtected() bool { return _LINKEDIN_AUTHORIZED_RESOURCE_PROTECTED }
+func (p *linkedInClient) AccessUrl() string         { return _LINKEDIN_ACCESS_TOKEN_URL }
+func (p *linkedInClient) AccessUrlMethod() string   { return _LINKEDIN_ACCESS_TOKEN_METHOD }
+func (p *linkedInClient) AccessUrlProtected() bool  { return _LINKEDIN_ACCESS_TOKEN_PROTECTED }
+func (p *linkedInClient) AuthorizationUrl() string  { return _LINKEDIN_AUTHORIZATION_PATH_URL }
+func (p *linkedInClient) AuthorizedResourceProtected() bool {
+    return _LINKEDIN_AUTHORIZED_RESOURCE_PROTECTED
+}
 func (p *linkedInClient) ServiceId() string { return "linkedin.com" }
 func (p *linkedInClient) Initialize(properties jsonhelper.JSONObject) {
     if p.currentCredentials == nil {
@@ -141,9 +142,6 @@ func (p *linkedInClient) CreateAuthorizedRequest(method string, headers http.Hea
     return oauth1CreateAuthorizedRequest(p, method, headers, uri, query, r)
 }
 
-
-
-
 func (p *linkedInClient) ParseRequestTokenResult(value string) (AuthToken, os.Error) {
     LogDebug("+++++++++++++++++++++++++++++++")
     LogDebug("LinkedIn Client parsing request token result")
@@ -166,7 +164,6 @@ func (p *linkedInClient) ParseRequestTokenResult(value string) (AuthToken, os.Er
     LogDebug("+++++++++++++++++++++++++++++++")
     return t, err
 }
-
 
 func (p *linkedInClient) ParseAccessTokenResult(value string) (AuthToken, os.Error) {
     LogDebug("+++++++++++++++++++++++++++++++")
@@ -205,8 +202,3 @@ func (p *linkedInClient) RetrieveUserInfo() (UserInfo, os.Error) {
     }
     return result, err
 }
-
-
-
-
-

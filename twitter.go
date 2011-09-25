@@ -17,66 +17,65 @@ type TwitterRequestTokenResult interface {
 
 type TwitterAccessTokenResult interface {
     AuthToken
-    UserId()        string
-    ScreenName()    string
+    UserId() string
+    ScreenName() string
 }
 
 type twitterRequestTokenResult struct {
     stdAuthToken
-    callbackConfirmed   bool
+    callbackConfirmed bool
 }
 
 func (p *twitterRequestTokenResult) CallbackConfirmed() bool { return p.callbackConfirmed }
 
 type twitterAccessTokenResult struct {
     stdAuthToken
-    userId          string
-    screenName      string
+    userId     string
+    screenName string
 }
 
-func (p *twitterAccessTokenResult) UserId() string { return p.userId }
+func (p *twitterAccessTokenResult) UserId() string     { return p.userId }
 func (p *twitterAccessTokenResult) ScreenName() string { return p.screenName }
 
 type TwitterUserInfoResult interface {
     UserInfo
-    Id()                        string
-    Name()                      string
-    ScreenName()                string
-    Location()                  string
-    Lang()                      string
-    Description()               string
-    ProfileImageUrl()           string
+    Id() string
+    Name() string
+    ScreenName() string
+    Location() string
+    Lang() string
+    Description() string
+    ProfileImageUrl() string
     ProfileBackgroundImageUrl() string
-    FavoritesCount()            int
-    FriendsCount()              int
-    FollowersCount()            int
-    StatusesCount()             int
-    TimeZone()                  string
-    UtcOffset()                 int
-    Following()                 bool
+    FavoritesCount() int
+    FriendsCount() int
+    FollowersCount() int
+    StatusesCount() int
+    TimeZone() string
+    UtcOffset() int
+    Following() bool
 }
 
 type twitterUserInfoResult struct {
-    id                          string  `json:"id"`
-    name                        string  `json:"name"`
-    screenName                  string  `json:"screen_name"`
-    url                         string  `json:"url"`
-    location                    string  `json:"location"`
-    lang                        string  `json:"lang"`
-    description                 string  `json:"description"`
-    profileImageUrl             string  `json:"profile_image_url"`
-    profileBackgroundImageUrl   string  `json:"profile_background_image_url"`
-    favoritesCount              int     `json:"favorites_count"`
-    friendsCount                int     `json:"friends_count"`
-    followersCount              int     `json:"followers_count"`
-    statusesCount               int     `json:"status_count"`
-    timeZone                    string  `json:"time_zone"`
-    utcOffset                   int     `json:"utc_offset"`
-    following                   bool    `json:"following"`
+    id                        string `json:"id"`
+    name                      string `json:"name"`
+    screenName                string `json:"screen_name"`
+    url                       string `json:"url"`
+    location                  string `json:"location"`
+    lang                      string `json:"lang"`
+    description               string `json:"description"`
+    profileImageUrl           string `json:"profile_image_url"`
+    profileBackgroundImageUrl string `json:"profile_background_image_url"`
+    favoritesCount            int    `json:"favorites_count"`
+    friendsCount              int    `json:"friends_count"`
+    followersCount            int    `json:"followers_count"`
+    statusesCount             int    `json:"status_count"`
+    timeZone                  string `json:"time_zone"`
+    utcOffset                 int    `json:"utc_offset"`
+    following                 bool   `json:"following"`
 }
 
-
-func (p *twitterUserInfoResult) Guid() string { return p.id }
+func (p *twitterUserInfoResult) Guid() string     { return p.id }
 func (p *twitterUserInfoResult) Username() string { return p.screenName }
 func (p *twitterUserInfoResult) GivenName() string {
     parts := strings.SplitN(p.name, " ", 2)
@@ -86,23 +85,23 @@ func (p *twitterUserInfoResult) FamilyName() string {
     parts := strings.Split(p.name, " ")
     return parts[len(parts)-1]
 }
-func (p *twitterUserInfoResult) DisplayName() string { return p.name }
-func (p *twitterUserInfoResult) Id() string { return p.id }
-func (p *twitterUserInfoResult) Name() string { return p.name }
-func (p *twitterUserInfoResult) ScreenName() string { return p.screenName }
-func (p *twitterUserInfoResult) Url() string { return p.url }
-func (p *twitterUserInfoResult) Location() string { return p.location }
-func (p *twitterUserInfoResult) Lang() string { return p.lang }
-func (p *twitterUserInfoResult) Description() string { return p.description }
-func (p *twitterUserInfoResult) ProfileImageUrl() string { return p.profileImageUrl }
+func (p *twitterUserInfoResult) DisplayName() string               { return p.name }
+func (p *twitterUserInfoResult) Id() string                        { return p.id }
+func (p *twitterUserInfoResult) Name() string                      { return p.name }
+func (p *twitterUserInfoResult) ScreenName() string                { return p.screenName }
+func (p *twitterUserInfoResult) Url() string                       { return p.url }
+func (p *twitterUserInfoResult) Location() string                  { return p.location }
+func (p *twitterUserInfoResult) Lang() string                      { return p.lang }
+func (p *twitterUserInfoResult) Description() string               { return p.description }
+func (p *twitterUserInfoResult) ProfileImageUrl() string           { return p.profileImageUrl }
 func (p *twitterUserInfoResult) ProfileBackgroundImageUrl() string { return p.profileBackgroundImageUrl }
-func (p *twitterUserInfoResult) FavoritesCount() int { return p.favoritesCount }
-func (p *twitterUserInfoResult) FriendsCount() int { return p.friendsCount }
-func (p *twitterUserInfoResult) FollowersCount() int { return p.followersCount }
-func (p *twitterUserInfoResult) StatusesCount() int { return p.statusesCount }
-func (p *twitterUserInfoResult) TimeZone() string { return p.timeZone }
-func (p *twitterUserInfoResult) UtcOffset() int { return p.utcOffset }
-func (p *twitterUserInfoResult) Following() bool { return p.following }
+func (p *twitterUserInfoResult) FavoritesCount() int               { return p.favoritesCount }
+func (p *twitterUserInfoResult) FriendsCount() int                 { return p.friendsCount }
+func (p *twitterUserInfoResult) FollowersCount() int               { return p.followersCount }
+func (p *twitterUserInfoResult) StatusesCount() int                { return p.statusesCount }
+func (p *twitterUserInfoResult) TimeZone() string                  { return p.timeZone }
+func (p *twitterUserInfoResult) UtcOffset() int                    { return p.utcOffset }
+func (p *twitterUserInfoResult) Following() bool                   { return p.following }
 func (p *twitterUserInfoResult) FromJSON(props jsonhelper.JSONObject) {
     p.id = props.GetAsString("id")
     p.name = props.GetAsString("name")
@@ -130,14 +129,16 @@ func NewTwitterClient() OAuth2Client {
     return &twitterClient{}
 }
 
-func (p *twitterClient) RequestUrl() string { return _TWITTER_REQUEST_TOKEN_URL }
-func (p *twitterClient) RequestUrlMethod() string { return _TWITTER_REQUEST_TOKEN_METHOD }
+func (p *twitterClient) RequestUrl() string        { return _TWITTER_REQUEST_TOKEN_URL }
+func (p *twitterClient) RequestUrlMethod() string  { return _TWITTER_REQUEST_TOKEN_METHOD }
 func (p *twitterClient) RequestUrlProtected() bool { return _TWITTER_REQUEST_TOKEN_PROTECTED }
-func (p *twitterClient) AccessUrl() string { return _TWITTER_ACCESS_TOKEN_URL }
-func (p *twitterClient) AccessUrlMethod() string  { return _TWITTER_ACCESS_TOKEN_METHOD }
-func (p *twitterClient) AccessUrlProtected() bool { return _TWITTER_ACCESS_TOKEN_PROTECTED }
-func (p *twitterClient) AuthorizationUrl() string { return _TWITTER_AUTHORIZATION_PATH_URL }
-func (p *twitterClient) AuthorizedResourceProtected() bool { return _TWITTER_AUTHORIZED_RESOURCE_PROTECTED }
+func (p *twitterClient) AccessUrl() string         { return _TWITTER_ACCESS_TOKEN_URL }
+func (p *twitterClient) AccessUrlMethod() string   { return _TWITTER_ACCESS_TOKEN_METHOD }
+func (p *twitterClient) AccessUrlProtected() bool  { return _TWITTER_ACCESS_TOKEN_PROTECTED }
+func (p *twitterClient) AuthorizationUrl() string  { return _TWITTER_AUTHORIZATION_PATH_URL }
+func (p *twitterClient) AuthorizedResourceProtected() bool {
+    return _TWITTER_AUTHORIZED_RESOURCE_PROTECTED
+}
 func (p *twitterClient) ServiceId() string { return "twitter.com" }
 func (p *twitterClient) Initialize(properties jsonhelper.JSONObject) {
     if p.currentCredentials == nil {
@@ -184,8 +185,6 @@ func (p *twitterClient) CreateAuthorizedRequest(method string, headers http.Head
     return oauth1CreateAuthorizedRequest(p, method, headers, uri, query, r)
 }
 
-
-
 func (p *twitterClient) ParseRequestTokenResult(value string) (AuthToken, os.Error) {
     LogDebug("+++++++++++++++++++++++++++++++")
     LogDebug("Twitter Client parsing request token result")
@@ -202,7 +201,6 @@ func (p *twitterClient) ParseRequestTokenResult(value string) (AuthToken, os.Err
     LogDebug("+++++++++++++++++++++++++++++++")
     return t, err
 }
-
 
 func (p *twitterClient) ParseAccessTokenResult(value string) (AuthToken, os.Error) {
     LogDebug("+++++++++++++++++++++++++++++++")
@@ -238,4 +236,3 @@ func (p *twitterClient) RetrieveUserInfo() (UserInfo, os.Error) {
     }
     return result, err
 }
-

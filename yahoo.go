@@ -13,83 +13,85 @@ import (
 
 type yahooClient struct {
     stdOAuth1Client
+    guid          string `json:"guid"`
+    sessionHandle string `json:"sessionHandle"`
 }
 
 type YahooRequestTokenResult interface {
     AuthToken
-    RequestAuthUrl()    string
-    ExpiresAt()         *time.Time
+    RequestAuthUrl() string
+    ExpiresAt() *time.Time
     CallbackConfirmed() bool
 }
 
 type YahooAccessTokenResult interface {
     AuthToken
-    Guid()          string
+    Guid() string
     SessionHandle() string
-    ExpiresAt()     *time.Time
+    ExpiresAt() *time.Time
 }
 
 type YahooUserInfoIm interface {
-    Handle()            string
-    Id()                int
-    Type()              string
+    Handle() string
+    Id() int
+    Type() string
 }
 
 type YahooUserInfoEmail interface {
     YahooUserInfoIm
-    IsPrimary()         bool
+    IsPrimary() bool
 }
 
 type YahooUserInfoResult interface {
     UserInfo
-    Uri()               string
-    BirthYear()         int
-    Birthdate()         string
-    Created()           *time.Time
-    DisplayAge()        int
-    Gender()            string
-    Lang()              string
-    Location()          string
-    MemberSince()       *time.Time
-    Nickname()          string
-    ProfileUrl()        string
-    Searchable()        bool
-    TimeZone()          string
-    Updated()           *time.Time
-    IsConnected()       bool
+    Uri() string
+    BirthYear() int
+    Birthdate() string
+    Created() *time.Time
+    DisplayAge() int
+    Gender() string
+    Lang() string
+    Location() string
+    MemberSince() *time.Time
+    Nickname() string
+    ProfileUrl() string
+    Searchable() bool
+    TimeZone() string
+    Updated() *time.Time
+    IsConnected() bool
 }
 
 type yahooRequestTokenResult struct {
     stdAuthToken
-    requestAuthUrl      string
-    expiresAt           *time.Time
-    callbackConfirmed   bool
+    requestAuthUrl    string
+    expiresAt         *time.Time
+    callbackConfirmed bool
 }
 
-func (p *yahooRequestTokenResult) RequestAuthUrl() string { return p.requestAuthUrl }
-func (p *yahooRequestTokenResult) ExpiresAt() *time.Time { return p.expiresAt }
+func (p *yahooRequestTokenResult) RequestAuthUrl() string  { return p.requestAuthUrl }
+func (p *yahooRequestTokenResult) ExpiresAt() *time.Time   { return p.expiresAt }
 func (p *yahooRequestTokenResult) CallbackConfirmed() bool { return p.callbackConfirmed }
 
 type yahooAccessTokenResult struct {
     stdAuthToken
-    guid            string
-    sessionHandle   string
-    expiresAt       *time.Time
+    guid          string
+    sessionHandle string
+    expiresAt     *time.Time
 }
 
-func (p *yahooAccessTokenResult) Guid() string { return p.guid }
+func (p *yahooAccessTokenResult) Guid() string          { return p.guid }
 func (p *yahooAccessTokenResult) SessionHandle() string { return p.sessionHandle }
 func (p *yahooAccessTokenResult) ExpiresAt() *time.Time { return p.expiresAt }
 
 type yahooUserInfoIm struct {
-    handle          string  `json:"handle"`
-    id              int     `json:"id"`
-    theType         string  `json:"type"`
+    handle  string `json:"handle"`
+    id      int    `json:"id"`
+    theType string `json:"type"`
 }
 
 func (p *yahooUserInfoIm) Handle() string { return p.handle }
-func (p *yahooUserInfoIm) Id() int { return p.id }
-func (p *yahooUserInfoIm) Type() string { return p.theType }
+func (p *yahooUserInfoIm) Id() int        { return p.id }
+func (p *yahooUserInfoIm) Type() string   { return p.theType }
 func (p *yahooUserInfoIm) FromJSON(props jsonhelper.JSONObject) {
     p.handle = props.GetAsString("handle")
     p.id = props.GetAsInt("id")
@@ -98,7 +100,7 @@ func (p *yahooUserInfoIm) FromJSON(props jsonhelper.JSONObject) {
 
 type yahooUserInfoEmail struct {
     yahooUserInfoIm
-    isPrimary           bool    `json:"primary"`
+    isPrimary bool `json:"primary"`
 }
 
 func (p *yahooUserInfoEmail) IsPrimary() bool { return p.isPrimary }
@@ -108,56 +110,56 @@ func (p *yahooUserInfoEmail) FromJSON(props jsonhelper.JSONObject) {
 }
 
 type yahooUserInfoResult struct {
-    guid                string
-    uri                 string
-    birthYear           int
-    birthdate           string
-    created             *time.Time
-    displayAge          int
-    emails              []YahooUserInfoEmail
-    familyName          string
-    givenName           string
-    gender              string
-    ims                 []YahooUserInfoIm
-    lang                string
-    location            string
-    memberSince         *time.Time
-    nickname            string
-    profileUrl          string
-    searchable          bool
-    timeZone            string
-    updated             *time.Time
-    isConnected         bool
+    guid        string
+    uri         string
+    birthYear   int
+    birthdate   string
+    created     *time.Time
+    displayAge  int
+    emails      []YahooUserInfoEmail
+    familyName  string
+    givenName   string
+    gender      string
+    ims         []YahooUserInfoIm
+    lang        string
+    location    string
+    memberSince *time.Time
+    nickname    string
+    profileUrl  string
+    searchable  bool
+    timeZone    string
+    updated     *time.Time
+    isConnected bool
 }
 
-func (p *yahooUserInfoResult) Guid()              string        { return p.guid }
-func (p *yahooUserInfoResult) Username()          string        { return p.nickname }
-func (p *yahooUserInfoResult) Url()               string        { return p.uri }
-func (p *yahooUserInfoResult) DisplayName()       string        {
+func (p *yahooUserInfoResult) Guid() string     { return p.guid }
+func (p *yahooUserInfoResult) Username() string { return p.nickname }
+func (p *yahooUserInfoResult) Url() string      { return p.uri }
+func (p *yahooUserInfoResult) DisplayName() string {
     if len(p.givenName) > 0 && len(p.familyName) > 0 {
         return p.givenName + " " + p.familyName
     }
     return p.givenName + p.familyName
 }
-func (p *yahooUserInfoResult) Uri()               string        { return p.uri }
-func (p *yahooUserInfoResult) BirthYear()         int           { return p.birthYear }
-func (p *yahooUserInfoResult) Birthdate()         string        { return p.birthdate }
-func (p *yahooUserInfoResult) Created()           *time.Time    { return p.created }
-func (p *yahooUserInfoResult) DisplayAge()        int           { return p.displayAge }
-func (p *yahooUserInfoResult) Emails()            []YahooUserInfoEmail { return p.emails }
-func (p *yahooUserInfoResult) FamilyName()        string        { return p.familyName }
-func (p *yahooUserInfoResult) GivenName()         string        { return p.givenName }
-func (p *yahooUserInfoResult) Gender()            string        { return p.gender }
-func (p *yahooUserInfoResult) Ims()               []YahooUserInfoIm { return p.ims }
-func (p *yahooUserInfoResult) Lang()              string        { return p.lang }
-func (p *yahooUserInfoResult) Location()          string        { return p.location }
-func (p *yahooUserInfoResult) MemberSince()       *time.Time    { return p.memberSince }
-func (p *yahooUserInfoResult) Nickname()          string        { return p.nickname }
-func (p *yahooUserInfoResult) ProfileUrl()        string        { return p.profileUrl }
-func (p *yahooUserInfoResult) Searchable()        bool          { return p.searchable }
-func (p *yahooUserInfoResult) TimeZone()          string        { return p.timeZone }
-func (p *yahooUserInfoResult) Updated()           *time.Time    { return p.updated }
-func (p *yahooUserInfoResult) IsConnected()       bool          { return p.isConnected }
+func (p *yahooUserInfoResult) Uri() string                  { return p.uri }
+func (p *yahooUserInfoResult) BirthYear() int               { return p.birthYear }
+func (p *yahooUserInfoResult) Birthdate() string            { return p.birthdate }
+func (p *yahooUserInfoResult) Created() *time.Time          { return p.created }
+func (p *yahooUserInfoResult) DisplayAge() int              { return p.displayAge }
+func (p *yahooUserInfoResult) Emails() []YahooUserInfoEmail { return p.emails }
+func (p *yahooUserInfoResult) FamilyName() string           { return p.familyName }
+func (p *yahooUserInfoResult) GivenName() string            { return p.givenName }
+func (p *yahooUserInfoResult) Gender() string               { return p.gender }
+func (p *yahooUserInfoResult) Ims() []YahooUserInfoIm       { return p.ims }
+func (p *yahooUserInfoResult) Lang() string                 { return p.lang }
+func (p *yahooUserInfoResult) Location() string             { return p.location }
+func (p *yahooUserInfoResult) MemberSince() *time.Time      { return p.memberSince }
+func (p *yahooUserInfoResult) Nickname() string             { return p.nickname }
+func (p *yahooUserInfoResult) ProfileUrl() string           { return p.profileUrl }
+func (p *yahooUserInfoResult) Searchable() bool             { return p.searchable }
+func (p *yahooUserInfoResult) TimeZone() string             { return p.timeZone }
+func (p *yahooUserInfoResult) Updated() *time.Time          { return p.updated }
+func (p *yahooUserInfoResult) IsConnected() bool            { return p.isConnected }
 func (p *yahooUserInfoResult) FromJSON(props jsonhelper.JSONObject) {
     p.guid = props.GetAsString("guid")
     p.uri = props.GetAsString("uri")
@@ -197,18 +199,18 @@ func NewYahooClient() OAuth2Client {
     return &yahooClient{}
 }
 
-func (p *yahooClient) RequestUrl() string { return _YAHOO_REQUEST_TOKEN_URL }
-func (p *yahooClient) RequestUrlMethod() string { return _YAHOO_REQUEST_TOKEN_METHOD }
-func (p *yahooClient) RequestUrlProtected() bool { return _YAHOO_REQUEST_TOKEN_PROTECTED }
-func (p *yahooClient) AccessUrl() string { return _YAHOO_ACCESS_TOKEN_URL }
-func (p *yahooClient) AccessUrlMethod() string  { return _YAHOO_ACCESS_TOKEN_METHOD }
-func (p *yahooClient) AccessUrlProtected() bool { return _YAHOO_ACCESS_TOKEN_PROTECTED }
-func (p *yahooClient) AuthorizationUrl() string { return _YAHOO_AUTHORIZATION_PATH_URL }
+func (p *yahooClient) RequestUrl() string                { return _YAHOO_REQUEST_TOKEN_URL }
+func (p *yahooClient) RequestUrlMethod() string          { return _YAHOO_REQUEST_TOKEN_METHOD }
+func (p *yahooClient) RequestUrlProtected() bool         { return _YAHOO_REQUEST_TOKEN_PROTECTED }
+func (p *yahooClient) AccessUrl() string                 { return _YAHOO_ACCESS_TOKEN_URL }
+func (p *yahooClient) AccessUrlMethod() string           { return _YAHOO_ACCESS_TOKEN_METHOD }
+func (p *yahooClient) AccessUrlProtected() bool          { return _YAHOO_ACCESS_TOKEN_PROTECTED }
+func (p *yahooClient) AuthorizationUrl() string          { return _YAHOO_AUTHORIZATION_PATH_URL }
 func (p *yahooClient) AuthorizedResourceProtected() bool { return _YAHOO_AUTHORIZED_RESOURCE_PROTECTED }
-func (p *yahooClient) ServiceId() string { return "yahoo.com" }
+func (p *yahooClient) ServiceId() string                 { return "yahoo.com" }
 func (p *yahooClient) Initialize(properties jsonhelper.JSONObject) {
     if p.currentCredentials == nil {
-        p.currentCredentials = NewStandardAuthToken()
+        p.currentCredentials = &yahooAccessTokenResult{}
     }
     if properties == nil {
         return
@@ -238,6 +240,9 @@ func (p *yahooClient) Initialize(properties jsonhelper.JSONObject) {
     }
 }
 
+func (p *yahooClient) Guid() string          { return p.guid }
+func (p *yahooClient) SessionHandle() string { return p.sessionHandle }
+
 func (p *yahooClient) GenerateRequestTokenUrl(properties jsonhelper.JSONObject) string {
     return oauth1GenerateRequestTokenUrl(p, properties)
 }
@@ -253,7 +258,6 @@ func (p *yahooClient) ExchangeRequestTokenForAccess(req *http.Request) os.Error 
 func (p *yahooClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error) {
     return oauth1CreateAuthorizedRequest(p, method, headers, uri, query, r)
 }
-
 
 func (p *yahooClient) ParseRequestTokenResult(value string) (AuthToken, os.Error) {
     LogDebug("+++++++++++++++++++++++++++++++")
@@ -278,7 +282,6 @@ func (p *yahooClient) ParseRequestTokenResult(value string) (AuthToken, os.Error
     return t, err
 }
 
-
 func (p *yahooClient) ParseAccessTokenResult(value string) (AuthToken, os.Error) {
     LogDebug("+++++++++++++++++++++++++++++++")
     LogDebug("Yahoo! Client parsing access token result")
@@ -289,6 +292,12 @@ func (p *yahooClient) ParseAccessTokenResult(value string) (AuthToken, os.Error)
         t.secret = m.Get("oauth_token_secret")
         t.guid = m.Get("xoauth_yahoo_guid")
         t.sessionHandle = m.Get("oauth_session_handle")
+        if len(t.guid) > 0 {
+            p.guid = t.guid
+        }
+        if len(t.sessionHandle) > 0 {
+            p.sessionHandle = t.sessionHandle
+        }
         strExpiresIn := m.Get("oauth_authorization_expires_in")
         expiresIn, _ := strconv.Atoi64(strExpiresIn)
         if expiresIn > 0 {
@@ -318,5 +327,3 @@ func (p *yahooClient) RetrieveUserInfo() (UserInfo, os.Error) {
     }
     return result, err
 }
-
-

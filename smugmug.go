@@ -13,28 +13,28 @@ import (
 )
 
 type SmugMugUserInfoResult interface {
-    Id()            string
-    Name()          string
-    Nickname()      string
-    Url()           string
+    Id() string
+    Name() string
+    Nickname() string
+    Url() string
     AccountStatus() string
-    AccountType()   string
+    AccountType() string
     FileSizeLimit() float64
-    SmugVault()     bool
+    SmugVault() bool
 }
 
 type smugMugUserInfoResult struct {
-    id              int64   `json:"id"`
-    name            string  `json:"Name"`
-    nickname        string  `json:"NickName"`
-    url             string  `json:"URL"`
-    accountStatus   string  `json:"AccountStatus"`
-    accountType     string  `json:"AccountType"`
-    fileSizeLimit   int64   `json:"FileSizeLimit"`
-    smugVault       bool    `json:"SmugVault"`
+    id            int64  `json:"id"`
+    name          string `json:"Name"`
+    nickname      string `json:"NickName"`
+    url           string `json:"URL"`
+    accountStatus string `json:"AccountStatus"`
+    accountType   string `json:"AccountType"`
+    fileSizeLimit int64  `json:"FileSizeLimit"`
+    smugVault     bool   `json:"SmugVault"`
 }
 
-func (p *smugMugUserInfoResult) Guid() string { return strconv.Itoa64(p.id) }
+func (p *smugMugUserInfoResult) Guid() string     { return strconv.Itoa64(p.id) }
 func (p *smugMugUserInfoResult) Username() string { return p.nickname }
 func (p *smugMugUserInfoResult) GivenName() string {
     parts := strings.SplitN(p.name, " ", 2)
@@ -44,15 +44,15 @@ func (p *smugMugUserInfoResult) FamilyName() string {
     parts := strings.Split(p.name, " ")
     return parts[len(parts)-1]
 }
-func (p *smugMugUserInfoResult) DisplayName() string { return p.name }
-func (p *smugMugUserInfoResult) Id() int64 { return p.id }
-func (p *smugMugUserInfoResult) Name() string { return p.name }
-func (p *smugMugUserInfoResult) Nickname() string { return p.nickname }
-func (p *smugMugUserInfoResult) Url() string { return p.url }
+func (p *smugMugUserInfoResult) DisplayName() string   { return p.name }
+func (p *smugMugUserInfoResult) Id() int64             { return p.id }
+func (p *smugMugUserInfoResult) Name() string          { return p.name }
+func (p *smugMugUserInfoResult) Nickname() string      { return p.nickname }
+func (p *smugMugUserInfoResult) Url() string           { return p.url }
 func (p *smugMugUserInfoResult) AccountStatus() string { return p.accountStatus }
-func (p *smugMugUserInfoResult) AccountType() string { return p.accountType }
-func (p *smugMugUserInfoResult) FileSizeLimit() int64 { return p.fileSizeLimit }
-func (p *smugMugUserInfoResult) SmugVault() bool { return p.smugVault }
+func (p *smugMugUserInfoResult) AccountType() string   { return p.accountType }
+func (p *smugMugUserInfoResult) FileSizeLimit() int64  { return p.fileSizeLimit }
+func (p *smugMugUserInfoResult) SmugVault() bool       { return p.smugVault }
 func (p *smugMugUserInfoResult) FromJSON(props jsonhelper.JSONObject) {
     LogDebug("user info result from json: ", props)
     p.id = props.GetAsInt64("id")
@@ -67,24 +67,24 @@ func (p *smugMugUserInfoResult) FromJSON(props jsonhelper.JSONObject) {
 
 type smugMugClient struct {
     stdOAuth1Client
-    appName         string "app_name"
+    appName string "app_name"
 }
 
 type SmugMugAccessTokenResult interface {
     AuthToken
-    Guid()          string
+    Guid() string
     SessionHandle() string
-    ExpiresAt()     *time.Time
+    ExpiresAt() *time.Time
 }
 
 type smugMugAccessTokenResult struct {
     stdAuthToken
-    guid            string
-    sessionHandle   string
-    expiresAt       *time.Time
+    guid          string
+    sessionHandle string
+    expiresAt     *time.Time
 }
 
-func (p *smugMugAccessTokenResult) Guid() string { return p.guid }
+func (p *smugMugAccessTokenResult) Guid() string          { return p.guid }
 func (p *smugMugAccessTokenResult) SessionHandle() string { return p.sessionHandle }
 func (p *smugMugAccessTokenResult) ExpiresAt() *time.Time { return p.expiresAt }
 
@@ -92,14 +92,16 @@ func NewSmugMugClient() OAuth2Client {
     return &smugMugClient{}
 }
 
-func (p *smugMugClient) RequestUrl() string { return _SMUGMUG_REQUEST_TOKEN_URL }
-func (p *smugMugClient) RequestUrlMethod() string { return _SMUGMUG_REQUEST_TOKEN_METHOD }
+func (p *smugMugClient) RequestUrl() string        { return _SMUGMUG_REQUEST_TOKEN_URL }
+func (p *smugMugClient) RequestUrlMethod() string  { return _SMUGMUG_REQUEST_TOKEN_METHOD }
 func (p *smugMugClient) RequestUrlProtected() bool { return _SMUGMUG_REQUEST_TOKEN_PROTECTED }
-func (p *smugMugClient) AccessUrl() string { return _SMUGMUG_ACCESS_TOKEN_URL }
-func (p *smugMugClient) AccessUrlMethod() string  { return _SMUGMUG_ACCESS_TOKEN_METHOD }
-func (p *smugMugClient) AccessUrlProtected() bool { return _SMUGMUG_ACCESS_TOKEN_PROTECTED }
-func (p *smugMugClient) AuthorizationUrl() string { return _SMUGMUG_AUTHORIZATION_PATH_URL }
-func (p *smugMugClient) AuthorizedResourceProtected() bool { return _SMUGMUG_AUTHORIZED_RESOURCE_PROTECTED }
+func (p *smugMugClient) AccessUrl() string         { return _SMUGMUG_ACCESS_TOKEN_URL }
+func (p *smugMugClient) AccessUrlMethod() string   { return _SMUGMUG_ACCESS_TOKEN_METHOD }
+func (p *smugMugClient) AccessUrlProtected() bool  { return _SMUGMUG_ACCESS_TOKEN_PROTECTED }
+func (p *smugMugClient) AuthorizationUrl() string  { return _SMUGMUG_AUTHORIZATION_PATH_URL }
+func (p *smugMugClient) AuthorizedResourceProtected() bool {
+    return _SMUGMUG_AUTHORIZED_RESOURCE_PROTECTED
+}
 func (p *smugMugClient) ServiceId() string { return "smugmug.com" }
 func (p *smugMugClient) Initialize(properties jsonhelper.JSONObject) {
     if p.currentCredentials == nil {
@@ -152,7 +154,6 @@ func (p *smugMugClient) CreateAuthorizedRequest(method string, headers http.Head
     return oauth1CreateAuthorizedRequest(p, method, headers, uri, query, r)
 }
 
-
 func (p *smugMugClient) ParseRequestTokenResult(value string) (AuthToken, os.Error) {
     LogDebug("+++++++++++++++++++++++++++++++")
     LogDebug("SmugMug! Client parsing request token result")
@@ -160,7 +161,6 @@ func (p *smugMugClient) ParseRequestTokenResult(value string) (AuthToken, os.Err
     LogDebug("+++++++++++++++++++++++++++++++")
     return t, err
 }
-
 
 func (p *smugMugClient) ParseAccessTokenResult(value string) (AuthToken, os.Error) {
     LogDebug("+++++++++++++++++++++++++++++++")
@@ -201,6 +201,3 @@ func (p *smugMugClient) RetrieveUserInfo() (UserInfo, os.Error) {
     }
     return result, err
 }
-
-
-

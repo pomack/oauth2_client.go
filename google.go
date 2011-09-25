@@ -15,37 +15,37 @@ import (
 
 type GoogleUserInfoResult interface {
     UserInfo
-    Id()                string
-    Name()              string
-    FirstName()         string
-    LastName()          string
-    Link()              string
-    Hometown()          FacebookLocation
-    Location()          FacebookLocation
-    Gender()            string
-    Email()             string
-    Timezone()          float64
-    Locale()            string
-    Verified()          bool
-    UpdatedTime()       *time.Time
+    Id() string
+    Name() string
+    FirstName() string
+    LastName() string
+    Link() string
+    Hometown() FacebookLocation
+    Location() FacebookLocation
+    Gender() string
+    Email() string
+    Timezone() float64
+    Locale() string
+    Verified() bool
+    UpdatedTime() *time.Time
 }
 
 type googleUserInfoResult struct {
-    id                  string              `json:"id"`
-    name                string              `json:"name"`
-    email               string              `json:"email"`
-    uri                 string              `json:"link"`
-    updated             *time.Time          `json:"updated"`
+    id      string     `json:"id"`
+    name    string     `json:"name"`
+    email   string     `json:"email"`
+    uri     string     `json:"link"`
+    updated *time.Time `json:"updated"`
 }
 
-func (p *googleUserInfoResult) Guid() string { return p.id }
-func (p *googleUserInfoResult) Username() string { return p.id }
-func (p *googleUserInfoResult) GivenName() string { return p.name }
-func (p *googleUserInfoResult) FamilyName() string { return p.name }
+func (p *googleUserInfoResult) Guid() string        { return p.id }
+func (p *googleUserInfoResult) Username() string    { return p.id }
+func (p *googleUserInfoResult) GivenName() string   { return p.name }
+func (p *googleUserInfoResult) FamilyName() string  { return p.name }
 func (p *googleUserInfoResult) DisplayName() string { return p.name }
-func (p *googleUserInfoResult) Url() string { return p.uri }
-func (p *googleUserInfoResult) Id() string { return p.id }
-func (p *googleUserInfoResult) Name() string { return p.name }
+func (p *googleUserInfoResult) Url() string         { return p.uri }
+func (p *googleUserInfoResult) Id() string          { return p.id }
+func (p *googleUserInfoResult) Name() string        { return p.name }
 func (p *googleUserInfoResult) Updated() *time.Time { return p.updated }
 func (p *googleUserInfoResult) UnmarshalJSON(data []byte) os.Error {
     props := jsonhelper.NewJSONObject()
@@ -71,37 +71,37 @@ func (p *googleUserInfoResult) FromJSON(props jsonhelper.JSONObject) {
 }
 
 type googleClient struct {
-    client                      *http.Client
-    clientId                    string "client_id"
-    clientSecret                string "client_secret"
-    redirectUri                 string "redirect_uri"
-    scope                       string "scope"
-    state                       string "state"
-    accessToken                 string "access_token"
-    expiresAt                   *time.Time "expires_at"
-    tokenType                   string "token_type"
-    refreshToken                string "refresh_token"
+    client       *http.Client
+    clientId     string     "client_id"
+    clientSecret string     "client_secret"
+    redirectUri  string     "redirect_uri"
+    scope        string     "scope"
+    state        string     "state"
+    accessToken  string     "access_token"
+    expiresAt    *time.Time "expires_at"
+    tokenType    string     "token_type"
+    refreshToken string     "refresh_token"
 }
 
 type googleAuthorizationCodeResponse struct {
-    AccessToken     string  `json:"access_token"`
-    ExpiresIn       float64 `json:"expires_in"`
-    TokenType       string  `json:"token_type"`
-    RefreshToken    string  `json:"refresh_token"`
+    AccessToken  string  `json:"access_token"`
+    ExpiresIn    float64 `json:"expires_in"`
+    TokenType    string  `json:"token_type"`
+    RefreshToken string  `json:"refresh_token"`
 }
 
 func NewGoogleClient() *googleClient {
-    return &googleClient{client:new(http.Client)}
+    return &googleClient{client: new(http.Client)}
 }
 
 func (p *googleClient) Client() *http.Client {
     return p.client
 }
 
-func (p *googleClient) ClientId() string { return p.clientId }
-func (p *googleClient) ClientSecret() string { return p.clientSecret }
-func (p *googleClient) RedirectUri() string { return p.redirectUri }
-func (p *googleClient) AccessToken() string { return p.accessToken }
+func (p *googleClient) ClientId() string      { return p.clientId }
+func (p *googleClient) ClientSecret() string  { return p.clientSecret }
+func (p *googleClient) RedirectUri() string   { return p.redirectUri }
+func (p *googleClient) AccessToken() string   { return p.accessToken }
 func (p *googleClient) ExpiresAt() *time.Time { return p.expiresAt }
 func (p *googleClient) ExpiresAtString() string {
     if p.expiresAt == nil {
@@ -109,7 +109,7 @@ func (p *googleClient) ExpiresAtString() string {
     }
     return p.expiresAt.Format(GOOGLE_DATETIME_FORMAT)
 }
-func (p *googleClient) TokenType() string { return p.tokenType }
+func (p *googleClient) TokenType() string    { return p.tokenType }
 func (p *googleClient) RefreshToken() string { return p.refreshToken }
 
 func (p *googleClient) ServiceId() string { return "google.com" }
@@ -336,7 +336,7 @@ func (p *googleClient) CreateAuthorizedRequest(method string, headers http.Heade
     if err != nil {
         return nil, err
     }
-    headers.Set("Authorization", "Bearer " + accessToken)
+    headers.Set("Authorization", "Bearer "+accessToken)
     fullUrl := MakeUrl(uri, query)
     req, err := http.NewRequest(method, fullUrl, r)
     if req != nil {
@@ -361,4 +361,3 @@ func (p *googleClient) RetrieveUserInfo() (UserInfo, os.Error) {
     }
     return result, err
 }
-

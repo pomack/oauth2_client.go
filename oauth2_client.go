@@ -12,12 +12,12 @@ import (
 )
 
 type UserInfo interface {
-    Guid()          string
-    Username()      string
-    GivenName()     string
-    FamilyName()    string
-    DisplayName()   string
-    Url()           string
+    Guid() string
+    Username() string
+    GivenName() string
+    FamilyName() string
+    DisplayName() string
+    Url() string
 }
 
 type OAuth2Client interface {
@@ -28,7 +28,7 @@ type OAuth2Client interface {
     RequestTokenGranted(req *http.Request) bool
     ExchangeRequestTokenForAccess(req *http.Request) os.Error
     CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error)
-    RetrieveUserInfo()              (UserInfo, os.Error)
+    RetrieveUserInfo() (UserInfo, os.Error)
 }
 
 func AuthorizedGetRequest(client OAuth2Client, headers http.Header, uri string, query url.Values) (*http.Response, *http.Request, os.Error) {
@@ -172,4 +172,3 @@ func MakeRequest(client *http.Client, req *http.Request) (*http.Response, *http.
     }
     return resp, req, err
 }
-
