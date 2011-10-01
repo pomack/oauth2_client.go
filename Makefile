@@ -5,6 +5,7 @@ GOFILES=\
     const.go\
     facebook.go\
     google.go\
+    googleplus.go\
     linkedin.go\
     log.go\
     oauth1_client.go\

@@ -26,6 +26,15 @@ const (
     _GOOGLE_USERINFO_METHOD           = "GET"
     _GOOGLE_USERINFO_FEED_REL         = "http://schemas.google.com/g/2005#feed"
 
+    _GOOGLEPLUS_ACCESS_TOKEN_URL          = "https://accounts.google.com/o/oauth2/auth"
+    _GOOGLEPLUS_ACCESS_TOKEN_METHOD       = "GET"
+    _GOOGLEPLUS_AUTHORIZATION_CODE_URL    = "https://accounts.google.com/o/oauth2/token"
+    _GOOGLEPLUS_AUTHORIZATION_CODE_METHOD = "POST"
+    _GOOGLEPLUS_REFRESH_TOKEN_URL         = "https://accounts.google.com/o/oauth2/token"
+    _GOOGLEPLUS_REFRESH_TOKEN_METHOD      = "POST"
+    _GOOGLEPLUS_USERINFO_URL              = "https://www.googleapis.com/plus/v1/people/me"
+    _GOOGLEPLUS_USERINFO_METHOD           = "GET"
+
     _FACEBOOK_ACCESS_TOKEN_URL          = "https://www.facebook.com/dialog/oauth"
     _FACEBOOK_ACCESS_TOKEN_METHOD       = "GET"
     _FACEBOOK_AUTHORIZATION_CODE_URL    = "https://graph.facebook.com/oauth/access_token"

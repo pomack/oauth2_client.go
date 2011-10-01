@@ -5,10 +5,16 @@
     "google.client.scope" : "https://www.google.com/m8/feeds/",
     "google.client.test_url" : "https://www.google.com/m8/feeds/contacts/default/full?alt=json&max-results=1",
     
+    "googleplus.client.id" : "",
+    "googleplus.client.secret" : "",
+    "googleplus.client.redirect_uri" : "http://localhost:8000/auth/oauth2/oauth2callback?site=plus.google.com",
+    "googleplus.client.scope" : "https://www.googleapis.com/auth/plus.me",
+    "googleplus.client.test_url" : "https://www.googleapis.com/plus/v1/people/me",
+    
     "facebook.client.id" : "",
     "facebook.client.secret" : "",
     "facebook.client.redirect_uri" : "http://localhost:8000/auth/oauth2/oauth2callback?site=facebook.com",
-    "facebook.client.scope" : "email,read_stream",
+    "facebook.client.scope" : "user_about_me,friends_about_me,user_activities,friends_activities,user_birthday,friends_birthday,user_checkins,friends_checkins,user_education_history,friends_education_history,user_events,friends_events,user_groups,friends_groups,user_hometown,friends_hometown,user_interests,friends_interests,user_likes,friends_likes,user_location,friends_location,user_notes,friends_notes,user_online_presence,friends_online_presence,user_photo_video_tags,friends_photo_video_tags,user_photos,friends_photos,user_relationships,friends_relationships,user_relationship_details,friends_relationship_details,user_religion_politics,friends_religion_politics,user_status,friends_status,user_videos,friends_videos,user_website,friends_website,user_work_history,friends_work_history,email,read_stream",
     "facebook.client.test_url" : "https://graph.facebook.com/me",
     
     "twitter.consumer.key" : "",
@@ -24,7 +30,7 @@
     "linkedin.secret.key" : "",
     "linkedin.client.redirect_uri" : "http://localhost:8000/auth/oauth2/oauth2callback?site=linkedin.com",
     "linkedin.oauth1.scope" : "",
-    "linkedin.client.test_url" : "http://api.linkedin.com/v1/people/~:(id,first-name,last-name,headline,location,num-connections,num-connections-capped,summary,twitter-accounts,date-of-birth,picture-url,public-profile-url,api-standard-profile-request,member-url-resources,im-accounts,phone-numbers)",
+    "linkedin.client.test_url" : "http://api.linkedin.com/v1/people/~:(picture-url,id,first-name,last-name,educations,positions,skills,certifications,publications,honors,summary,specialties,twitter-accounts,interests,languages,location,num-connections,num-connections-capped,phone-numbers,main-address,date-of-birth,headline,industry,associations,member-url-resources,public-profile-url,patents,api-standard-profile-request,im-accounts)",
     
     "yahoo.realm" : "",
     "yahoo.consumer.key" : "",

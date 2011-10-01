@@ -26,6 +26,7 @@ const (
         <p>
             <a href="/facebook/">Test Facebook OAuth</a><br/>
             <a href="/google/">Test Google OAuth</a><br/>
+            <a href="/googleplus/">Test Google+ OAuth</a><br/>
             <a href="/linkedin/">Test LinkedIn OAuth</a><br/>
             <a href="/smugmug/">Test SmugMug OAuth</a><br/>
             <a href="/twitter/">Test Twitter OAuth</a><br/>
@@ -65,6 +66,47 @@ const (
             
             <label for="google.client.test_url">URL:</label>
             <input type="text" name="google.client.test_url" value="{{.url|html}}" size="120"/><br/>
+            
+            <input type="submit" name="submit" value="Submit"/>
+        </p>
+        </form>
+        <div>
+            <pre>{{.output|html}}</pre>
+        </div>
+    </body>
+</html>
+`
+
+    GOOGLEPLUS_TEST_PAGE = `<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Google+ OAuth 2.0 Test Homepage</title>
+        <style type="text/css">
+            label {
+                width: 10em;
+                font-weight: bold;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Google+ OAuth 2.0 Test Homepage</h1>
+        <form method="POST" action="/googleplus/test/">
+        <p>
+            <label for="googleplus.client.access_token">Access Token:</label>
+            <input type="text" name="googleplus.client.access_token" value="{{.c.AccessToken|html}}" size="80"/><br/>
+            
+            <label for="googleplus.client.expires_at">Expires At:</label>
+            <input type="text" name="googleplus.client.expires_at" value="{{.c.ExpiresAtString|html}}" readonly="readonly" size="80"/><br/>
+            
+            <label for="googleplus.client.token_type">Token Type:</label>
+            <input type="text" name="googleplus.client.token_type" value="{{.c.TokenType|html}}" readonly="readonly" size="80"/><br/>
+            
+            <label for="googleplus.client.refresh_token">Refresh Token:</label>
+            <input type="text" name="googleplus.client.refresh_token" value="{{.c.RefreshToken|html}}" size="80"/><br/>
+            
+            <label for="googleplus.client.test_url">URL:</label>
+            <input type="text" name="googleplus.client.test_url" value="{{.url|html}}" size="120"/><br/>
             
             <input type="submit" name="submit" value="Submit"/>
         </p>
@@ -255,6 +297,7 @@ const (
 
 var (
     PARSED_GOOGLE_TEMPLATE *template.Template
+    PARSED_GOOGLEPLUS_TEMPLATE *template.Template
     PARSED_FACEBOOK_TEMPLATE *template.Template
     PARSED_LINKEDIN_TEMPLATE *template.Template
     PARSED_SMUGMUG_TEMPLATE *template.Template
@@ -285,6 +328,11 @@ func HandleFacebookOauthRequest(w http.ResponseWriter, req *http.Request) {
 
 func HandleGoogleOauthRequest(w http.ResponseWriter, req *http.Request) {
     c := NewGoogleOauth2ClientTester(getProperties())
+    HandleGenericOauthRequest(c, w, req)
+}
+
+func HandleGooglePlusOauthRequest(w http.ResponseWriter, req *http.Request) {
+    c := NewGooglePlusOauth2ClientTester(getProperties())
     HandleGenericOauthRequest(c, w, req)
 }
 
@@ -338,6 +386,10 @@ func HandleClientAccept(w http.ResponseWriter, req *http.Request) {
             c = NewGoogleOauth2ClientTester(props)
             uri = props.GetAsString("google.client.test_url")
             useTemplate = PARSED_GOOGLE_TEMPLATE
+        case "plus.google.com":
+            c = NewGooglePlusOauth2ClientTester(props)
+            uri = props.GetAsString("googleplus.client.test_url")
+            useTemplate = PARSED_GOOGLEPLUS_TEMPLATE
         case "linkedin.com":
             c = NewLinkedInOauth2ClientTester(props)
             uri = props.GetAsString("linkedin.client.test_url")
@@ -476,6 +528,10 @@ func HandleGoogleOauthTestRequest(w http.ResponseWriter, req *http.Request) {
     HandleGenericOauthTestRequest(w, req, oauth2_client.NewGoogleClient(), oauth2_client.GET, "google.client.test_url", "", PARSED_GOOGLE_TEMPLATE)
 }
 
+func HandleGooglePlusOauthTestRequest(w http.ResponseWriter, req *http.Request) {
+    HandleGenericOauthTestRequest(w, req, oauth2_client.NewGooglePlusClient(), oauth2_client.GET, "googleplus.client.test_url", "", PARSED_GOOGLEPLUS_TEMPLATE)
+}
+
 func HandleFacebookOauthTestRequest(w http.ResponseWriter, req *http.Request) {
     HandleGenericOauthTestRequest(w, req, oauth2_client.NewFacebookClient(), oauth2_client.GET, "facebook.client.test_url", "", PARSED_FACEBOOK_TEMPLATE)
 }
@@ -531,6 +587,7 @@ func main() {
 	oauth2_client.EnableLogInfo           = true
 	oauth2_client.EnableLogError          = true
 	PARSED_GOOGLE_TEMPLATE = template.Must(template.New("google").Parse(GOOGLE_TEST_PAGE))
+	PARSED_GOOGLEPLUS_TEMPLATE = template.Must(template.New("googleplus").Parse(GOOGLEPLUS_TEST_PAGE))
 	PARSED_FACEBOOK_TEMPLATE = template.Must(template.New("facebook").Parse(FACEBOOK_TEST_PAGE))
 	PARSED_LINKEDIN_TEMPLATE = template.Must(template.New("linkedin").Parse(LINKEDIN_TEST_PAGE))
 	PARSED_SMUGMUG_TEMPLATE = template.Must(template.New("smugmug").Parse(SMUGMUG_TEST_PAGE))
@@ -540,11 +597,13 @@ func main() {
     http.HandleFunc("/auth/oauth2/oauth2callback", HandleClientAccept)
     http.HandleFunc("/facebook/", HandleFacebookOauthRequest)
     http.HandleFunc("/google/", HandleGoogleOauthRequest)
+    http.HandleFunc("/googleplus/", HandleGooglePlusOauthRequest)
     http.HandleFunc("/linkedin/", HandleLinkedInOauthRequest)
     http.HandleFunc("/smugmug/", HandleSmugMugOauthRequest)
     http.HandleFunc("/twitter/", HandleTwitterOauthRequest)
     http.HandleFunc("/yahoo/", HandleYahooOauthRequest)
     http.HandleFunc("/google/test/", HandleGoogleOauthTestRequest)
+    http.HandleFunc("/googleplus/test/", HandleGooglePlusOauthTestRequest)
     http.HandleFunc("/facebook/test/", HandleFacebookOauthTestRequest)
     http.HandleFunc("/linkedin/test/", HandleLinkedInOauthTestRequest)
     http.HandleFunc("/smugmug/test/", HandleSmugMugOauthTestRequest)

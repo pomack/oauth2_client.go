@@ -4,6 +4,7 @@ TARG=oauth2_client_tester
 GOFILES=\
     facebook.go\
     google.go\
+    googleplus.go\
     linkedin.go\
     smugmug.go\
     twitter.go\
