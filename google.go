@@ -17,17 +17,7 @@ type GoogleUserInfoResult interface {
     UserInfo
     Id() string
     Name() string
-    FirstName() string
-    LastName() string
-    Link() string
-    Hometown() FacebookLocation
-    Location() FacebookLocation
-    Gender() string
-    Email() string
-    Timezone() float64
-    Locale() string
-    Verified() bool
-    UpdatedTime() *time.Time
+    Updated() *time.Time
 }
 
 type googleUserInfoResult struct {
