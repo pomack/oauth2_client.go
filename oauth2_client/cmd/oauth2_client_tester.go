@@ -1,8 +1,8 @@
 package main
 
 import (
-    "github.com/pomack/jsonhelper"
-    "github.com/pomack/oauth2_client"
+    "github.com/pomack/jsonhelper.go/jsonhelper"
+    "github.com/pomack/oauth2_client.go/oauth2_client"
     "bytes"
     "http"
     "io"

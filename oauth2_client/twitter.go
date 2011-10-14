@@ -1,7 +1,7 @@
 package oauth2_client
 
 import (
-    "github.com/pomack/jsonhelper"
+    "github.com/pomack/jsonhelper.go/jsonhelper"
     "http"
     "json"
     "os"
