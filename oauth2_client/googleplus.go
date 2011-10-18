@@ -25,18 +25,18 @@ type GooglePlusUserInfoResult interface {
 }
 
 type googleplusName struct {
-    FamilyName string `json:"familyName,omitempty"`
-    Formatted string `json:"formatted,omitempty"`
-    GivenName string `json:"givenName,omitempty"`
+    FamilyName      string `json:"familyName,omitempty"`
+    Formatted       string `json:"formatted,omitempty"`
+    GivenName       string `json:"givenName,omitempty"`
     HonorificPrefix string `json:"honorificPrefix,omitempty"`
     HonorificSuffix string `json:"honorificSuffix,omitempty"`
-    MiddleName string `json:"middleName,omitempty"`
+    MiddleName      string `json:"middleName,omitempty"`
 }
 
 type googleplusUrl struct {
-    Primary string  `json:"primary,omitempty"`
-    Type    string  `json:"type,omitempty"`
-    Value   string  `json:"value,omitempty"`
+    Primary string `json:"primary,omitempty"`
+    Type    string `json:"type,omitempty"`
+    Value   string `json:"value,omitempty"`
 }
 
 type googleplusUserInfoResult struct {
@@ -49,19 +49,19 @@ type googleplusUserInfoResult struct {
     urls        []googleplusUrl `json:"link,omitempty"`
 }
 
-func (p *googleplusUserInfoResult) Guid() string        { return p.id }
-func (p *googleplusUserInfoResult) Username() string    { return p.id }
-func (p *googleplusUserInfoResult) GivenName() string   { return p.name.GivenName }
-func (p *googleplusUserInfoResult) FamilyName() string  { return p.name.FamilyName }
-func (p *googleplusUserInfoResult) DisplayName() string { return p.displayName }
-func (p *googleplusUserInfoResult) Url() string         { return p.url }
-func (p *googleplusUserInfoResult) Id() string          { return p.id }
-func (p *googleplusUserInfoResult) MiddleName() string  { return p.name.MiddleName }
-func (p *googleplusUserInfoResult) Prefix() string      { return p.name.HonorificPrefix }
-func (p *googleplusUserInfoResult) Suffix() string      { return p.name.HonorificSuffix }
-func (p *googleplusUserInfoResult) Nickname() string    { return p.nickname }
+func (p *googleplusUserInfoResult) Guid() string             { return p.id }
+func (p *googleplusUserInfoResult) Username() string         { return p.id }
+func (p *googleplusUserInfoResult) GivenName() string        { return p.name.GivenName }
+func (p *googleplusUserInfoResult) FamilyName() string       { return p.name.FamilyName }
+func (p *googleplusUserInfoResult) DisplayName() string      { return p.displayName }
+func (p *googleplusUserInfoResult) Url() string              { return p.url }
+func (p *googleplusUserInfoResult) Id() string               { return p.id }
+func (p *googleplusUserInfoResult) MiddleName() string       { return p.name.MiddleName }
+func (p *googleplusUserInfoResult) Prefix() string           { return p.name.HonorificPrefix }
+func (p *googleplusUserInfoResult) Suffix() string           { return p.name.HonorificSuffix }
+func (p *googleplusUserInfoResult) Nickname() string         { return p.nickname }
 func (p *googleplusUserInfoResult) EmailAddresses() []string { return p.emails }
-func (p *googleplusUserInfoResult) Urls() []string      {
+func (p *googleplusUserInfoResult) Urls() []string {
     l := len(p.urls)
     arr := make([]string, l)
     for i, theurl := range p.urls {

@@ -123,7 +123,7 @@ func oauthEncode(text string) string {
 func getKeys(m url.Values) []string {
     arr := make([]string, len(m))
     i := 0
-    for k, _ := range m {
+    for k := range m {
         arr[i] = k
         i++
     }
