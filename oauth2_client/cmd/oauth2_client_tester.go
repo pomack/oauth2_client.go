@@ -4,6 +4,7 @@ import (
     "github.com/pomack/jsonhelper.go/jsonhelper"
     "github.com/pomack/oauth2_client.go/oauth2_client"
     "bytes"
+    "fmt"
     "http"
     "io"
     "json"
@@ -12,6 +13,10 @@ import (
     "strings"
     "template"
     "url"
+)
+
+var (
+    settingsFilename = "settings.json"
 )
 
 const (
@@ -554,7 +559,11 @@ func HandleYahooOauthTestRequest(w http.ResponseWriter, req *http.Request) {
 
 
 func getProperties() jsonhelper.JSONObject {
-    props, _ := readPropertiesFile("settings.json")
+    filename := settingsFilename
+    if filename == "" {
+        filename = "settings.json"
+    }
+    props, _ := readPropertiesFile(filename)
     return props
 }
 
@@ -586,6 +595,21 @@ func main() {
 	oauth2_client.EnableLogDebug          = true
 	oauth2_client.EnableLogInfo           = true
 	oauth2_client.EnableLogError          = true
+	nextIsSettingsFile := false
+	for _, arg := range os.Args[1:] {
+	    if nextIsSettingsFile {
+	        settingsFilename = arg
+	        nextIsSettingsFile = false
+	    } else if arg == "-f" {
+	        nextIsSettingsFile = true
+	    } else if arg == "-h" || arg == "--help" || arg == "-help" || arg == "/?" {
+	        fmt.Printf("Usage:\n\t%s [-f <settings filename>]\n\n", os.Args[0])
+	        return
+	    } else {
+	        fmt.Printf("Unexpected argument: %s\nUsage:\n\t%s [-f <settings filename>]\n\n", arg, os.Args[0])
+	        return
+	    }
+	}
 	PARSED_GOOGLE_TEMPLATE = template.Must(template.New("google").Parse(GOOGLE_TEST_PAGE))
 	PARSED_GOOGLEPLUS_TEMPLATE = template.Must(template.New("googleplus").Parse(GOOGLEPLUS_TEST_PAGE))
 	PARSED_FACEBOOK_TEMPLATE = template.Must(template.New("facebook").Parse(FACEBOOK_TEST_PAGE))
