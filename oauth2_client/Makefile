@@ -8,6 +8,7 @@ GOFILES=\
     googleplus.go\
     linkedin.go\
     log.go\
+    mock.go\
     oauth1_client.go\
     oauth2_client.go\
     smugmug.go\
