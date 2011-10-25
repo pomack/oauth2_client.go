@@ -282,11 +282,11 @@ func OAuth1MakeSyncRequest(p OAuth1Client, credentials AuthToken, headers http.H
     if err != nil {
         return nil, req, err
     }
-    return MakeRequest(p.Client(), req)
+    return MakeRequest(p, req)
 }
 
 func MakeAsyncRequest(p OAuth1Client, req *http.Request, handler RequestHandler) {
-    resp, _, err := MakeRequest(p.Client(), req)
+    resp, _, err := MakeRequest(p, req)
     if handler != nil {
         handler(resp, req, err)
     }

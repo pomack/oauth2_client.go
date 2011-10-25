@@ -186,7 +186,7 @@ func (p *googleClient) HandleClientAccept(code string) os.Error {
         return err
     }
     req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-    r, _, err := MakeRequest(p.client, req)
+    r, _, err := MakeRequest(p, req)
     //r, err := http.PostForm(url, m)
     if err != nil {
         LogError("Unable to retrieve generate authorization code uri")
@@ -236,7 +236,7 @@ func (p *googleClient) UpdateAccessToken() (string, os.Error) {
             return "", err
         }
         req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-        r, _, err := MakeRequest(p.client, req)
+        r, _, err := MakeRequest(p, req)
         //r, err := http.PostForm(uri, m)
         if err != nil {
             return "", err
@@ -341,7 +341,7 @@ func (p *googleClient) RetrieveUserInfo() (UserInfo, os.Error) {
         return nil, err
     }
     result := new(googleUserInfoResult)
-    resp, _, err := MakeRequest(p.client, req)
+    resp, _, err := MakeRequest(p, req)
     if resp != nil && resp.Body != nil {
         props := jsonhelper.NewJSONObject()
         if err2 := json.NewDecoder(resp.Body).Decode(&props); err == nil {

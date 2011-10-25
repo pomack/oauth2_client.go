@@ -226,7 +226,7 @@ func (p *twitterClient) RetrieveUserInfo() (UserInfo, os.Error) {
         return nil, err
     }
     result := new(twitterUserInfoResult)
-    resp, _, err := MakeRequest(p.client, req)
+    resp, _, err := MakeRequest(p, req)
     if resp != nil && resp.Body != nil {
         props := jsonhelper.NewJSONObject()
         if err2 := json.NewDecoder(resp.Body).Decode(&props); err == nil {

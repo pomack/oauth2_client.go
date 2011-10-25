@@ -196,7 +196,7 @@ func (p *googleplusClient) HandleClientAccept(code string) os.Error {
         return err
     }
     req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-    r, _, err := MakeRequest(p.client, req)
+    r, _, err := MakeRequest(p, req)
     //r, err := http.PostForm(url, m)
     if err != nil {
         LogError("Unable to retrieve generate authorization code uri")
@@ -246,7 +246,7 @@ func (p *googleplusClient) UpdateAccessToken() (string, os.Error) {
             return "", err
         }
         req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-        r, _, err := MakeRequest(p.client, req)
+        r, _, err := MakeRequest(p, req)
         //r, err := http.PostForm(uri, m)
         if err != nil {
             return "", err
@@ -351,7 +351,7 @@ func (p *googleplusClient) RetrieveUserInfo() (UserInfo, os.Error) {
         return nil, err
     }
     result := new(googleplusUserInfoResult)
-    resp, _, err := MakeRequest(p.client, req)
+    resp, _, err := MakeRequest(p, req)
     if resp != nil && resp.Body != nil {
         if err2 := json.NewDecoder(resp.Body).Decode(result); err == nil {
             err = err2

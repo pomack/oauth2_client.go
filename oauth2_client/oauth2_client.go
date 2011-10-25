@@ -116,7 +116,7 @@ func AuthorizedRequest(client OAuth2Client, method string, headers http.Header, 
     if err != nil {
         return nil, req, err
     }
-    return MakeRequest(client.Client(), req)
+    return MakeRequest(client, req)
 }
 
 func splitUrl(uri string, query url.Values) (string, url.Values) {
@@ -152,18 +152,23 @@ func MakeUrl(uri string, query url.Values) string {
     return fullUri
 }
 
-func MakeRequest(client *http.Client, req *http.Request) (*http.Response, *http.Request, os.Error) {
-    if client == nil {
-        client = new(http.Client)
-    }
-    if req == nil {
+func MakeRequest(client OAuth2Client, req *http.Request) (*http.Response, *http.Request, os.Error) {
+    if req == nil || client == nil {
         return nil, nil, nil
+    }
+    if mockClient, ok := client.(*mockOAuthClient); ok {
+        resp, err := mockClient.HandleRequest(req)
+        return resp, req, err
+    }
+    c := client.Client()
+    if c == nil {
+        c = new(http.Client)
     }
     if EnableLogHttpRequests {
         dump, _ := http.DumpRequest(req, true)
         log.Print("Making Request:", "\n=================================\n", string(dump), "=================================\n")
     }
-    resp, err := client.Do(req)
+    resp, err := c.Do(req)
     if EnableLogHttpResponses {
         if resp != nil {
             dump2, _ := http.DumpResponse(resp, true)
