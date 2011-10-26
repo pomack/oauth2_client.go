@@ -52,13 +52,15 @@ func HandleSuccessfulLogin(w http.ResponseWriter, req *http.Request) {
    useReq, _ := client.CreateAuthorizedRequest("GET", nil, GOOGLE_CONTACTS_TEST_URL, nil, nil)
    resp, _, _ := oauth2_client.MakeRequest(client, useReq)
    h := w.Header()
-   for k, v := range resp.Header {
-       for _, v1 := range v {
-           h.Add(k, v1)
+   if resp != nil {
+       for k, v := range resp.Header {
+           for _, v1 := range v {
+               h.Add(k, v1)
+           }
        }
+       w.WriteHeader(resp.StatusCode)
+       io.Copy(w, resp.Body)
    }
-   w.WriteHeader(resp.StatusCode)
-   io.Copy(w, resp.Body)
 }
 
 func main() {
