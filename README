@@ -2,7 +2,7 @@ Purpose:
    General use library for making requests using OAuth1.0 and OAuth2 for various services.
 
 Dependencies:
-   http://github.com/pomack/jsonhelper.go/jsonhelper
+   http://github.com/pomack/jsonhelper.go/
 
 Services supported:
    * Facebook
