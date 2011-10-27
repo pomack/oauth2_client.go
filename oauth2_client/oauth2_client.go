@@ -156,7 +156,7 @@ func MakeRequest(client OAuth2Client, req *http.Request) (*http.Response, *http.
     if req == nil || client == nil {
         return nil, nil, nil
     }
-    if mockClient, ok := client.(*mockOAuthClient); ok {
+    if mockClient, ok := client.(MockClient); ok {
         resp, err := mockClient.HandleRequest(req)
         return resp, req, err
     }
