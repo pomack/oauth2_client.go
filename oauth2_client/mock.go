@@ -146,7 +146,7 @@ func (p *mockAuthToken) SetUserId(value string)          { p.userId = value }
 func (p *mockAuthToken) ScreenName() string              { return p.screenName }
 func (p *mockAuthToken) SetScreenName(value string)      { p.screenName = value }
 
-func NewMockOAuthClient() OAuth1Client {
+func NewMockOAuthClient() MockClient {
     return &mockOAuthClient{
         requestTokenResults:make(map[string]mockParseTokenResult),
         accessTokenResults:make(map[string]mockParseTokenResult),
@@ -186,13 +186,13 @@ func (p *mockOAuthClient) AuthorizedResourceProtected() bool     { return p.auth
 func (p *mockOAuthClient) SetAuthorizedResourceProtected(value bool) { p.authorizedResourceProtected = value }
 func (p *mockOAuthClient) CallbackUrl() string                   { return p.callbackUrl }
 func (p *mockOAuthClient) SetCallbackUrl(value string)           { p.callbackUrl = value }
-func (p *mockOAuthClient) SetParseRequestTokenResults(value string, token MockAuthToken, error os.Error) {
+func (p *mockOAuthClient) SetParseRequestTokenResult(value string, token MockAuthToken, error os.Error) {
     p.requestTokenResults[value] = mockParseTokenResult{
       Token:token,
       Error:error,
     }
 }
-func (p *mockOAuthClient) SetParseAccessTokenResults(value string, token MockAuthToken, error os.Error) {
+func (p *mockOAuthClient) SetParseAccessTokenResult(value string, token MockAuthToken, error os.Error) {
     p.accessTokenResults[value] = mockParseTokenResult{
       Token:token,
       Error:error,
@@ -215,7 +215,6 @@ func (p *mockOAuthClient) ParseAccessTokenResult(value string) (AuthToken, os.Er
     }
     return nil, nil
 }
-
 
 func (p *mockOAuthClient) ServiceId() string                                                { return p.serviceName }
 func (p *mockOAuthClient) SetServiceId(value string)                                        { p.serviceName = value }
