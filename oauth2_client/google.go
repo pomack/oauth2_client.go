@@ -28,6 +28,15 @@ type googleUserInfoResult struct {
     updated *time.Time `json:"updated"`
 }
 
+func NewGoogleUserInfoResult(id, name, email, uri string, updated *time.Time) GoogleUserInfoResult {
+    return &googleUserInfoResult{
+        id: id,
+        name: name,
+        email: email,
+        uri: uri,
+        updated: updated,
+    }
+}
 func (p *googleUserInfoResult) Guid() string        { return p.id }
 func (p *googleUserInfoResult) Username() string    { return p.id }
 func (p *googleUserInfoResult) GivenName() string   { return p.name }
