@@ -12,7 +12,7 @@ import (
     "url"
 )
 
-type MockRequestHandler func(req *http.Request) (resp *http.Response, err os.Error)
+type MockRequestHandler func(client MockClient, req *http.Request) (resp *http.Response, err os.Error)
 
 // Credentials represents client, temporary and token credentials.
 type MockAuthToken interface {
@@ -280,5 +280,5 @@ func (p *mockOAuthClient) HandleRequest(req *http.Request) (*http.Response, os.E
     if p.requestHandler == nil {
         return nil, nil
     }
-    return p.requestHandler(req)
+    return p.requestHandler(p, req)
 }
