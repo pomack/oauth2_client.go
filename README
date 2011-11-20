@@ -14,9 +14,9 @@ Services supported:
    * Yahoo!
 
 Examples:
-   example.go for a basic example
-   cmd/oauth2_client_tester.go for a more detailed example.
-   All the properties that are used can be found in cmd/settings.json.
+   example/example.go for a basic example
+   oauth2_client/cmd/oauth2_client_tester.go for a more detailed example.
+   All the properties that are used can be found in oauth2_client/cmd/settings.json.
 
 Base interface available for all OAuth clients:
 
