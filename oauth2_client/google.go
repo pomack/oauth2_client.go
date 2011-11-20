@@ -30,10 +30,10 @@ type googleUserInfoResult struct {
 
 func NewGoogleUserInfoResult(id, name, email, uri string, updated *time.Time) GoogleUserInfoResult {
     return &googleUserInfoResult{
-        id: id,
-        name: name,
-        email: email,
-        uri: uri,
+        id:      id,
+        name:    name,
+        email:   email,
+        uri:     uri,
         updated: updated,
     }
 }
