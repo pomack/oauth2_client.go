@@ -1,14 +1,14 @@
 package oauth2_client
 
 import (
-    "github.com/pomack/jsonhelper.go/jsonhelper"
     "bytes"
-    "http"
+    "github.com/pomack/jsonhelper.go/jsonhelper"
     "io"
     "log"
-    "os"
+    "net/http"
+    "net/http/httputil"
+    "net/url"
     "strings"
-    "url"
 )
 
 type UserInfo interface {
@@ -26,24 +26,24 @@ type OAuth2Client interface {
     Initialize(properties jsonhelper.JSONObject)
     GenerateRequestTokenUrl(properties jsonhelper.JSONObject) string
     RequestTokenGranted(req *http.Request) bool
-    ExchangeRequestTokenForAccess(req *http.Request) os.Error
-    CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error)
-    RetrieveUserInfo() (UserInfo, os.Error)
+    ExchangeRequestTokenForAccess(req *http.Request) error
+    CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, error)
+    RetrieveUserInfo() (UserInfo, error)
 }
 
-func AuthorizedGetRequest(client OAuth2Client, headers http.Header, uri string, query url.Values) (*http.Response, *http.Request, os.Error) {
+func AuthorizedGetRequest(client OAuth2Client, headers http.Header, uri string, query url.Values) (*http.Response, *http.Request, error) {
     return AuthorizedRequest(client, GET, headers, uri, query, nil)
 }
 
-func AuthorizedPostRequestString(client OAuth2Client, headers http.Header, uri string, query url.Values, data string) (*http.Response, *http.Request, os.Error) {
+func AuthorizedPostRequestString(client OAuth2Client, headers http.Header, uri string, query url.Values, data string) (*http.Response, *http.Request, error) {
     return AuthorizedRequestBytes(client, POST, headers, uri, query, []byte(data))
 }
 
-func AuthorizedPostRequestBytes(client OAuth2Client, headers http.Header, uri string, query url.Values, data []byte) (*http.Response, *http.Request, os.Error) {
+func AuthorizedPostRequestBytes(client OAuth2Client, headers http.Header, uri string, query url.Values, data []byte) (*http.Response, *http.Request, error) {
     return AuthorizedRequestBytes(client, POST, headers, uri, query, data)
 }
 
-func AuthorizedPostFormRequest(client OAuth2Client, headers http.Header, uri string, query url.Values, data url.Values) (*http.Response, *http.Request, os.Error) {
+func AuthorizedPostFormRequest(client OAuth2Client, headers http.Header, uri string, query url.Values, data url.Values) (*http.Response, *http.Request, error) {
     if headers == nil {
         headers = make(http.Header)
     }
@@ -57,27 +57,27 @@ func AuthorizedPostFormRequest(client OAuth2Client, headers http.Header, uri str
     return AuthorizedRequestBytes(client, POST, headers, uri, query, bytes)
 }
 
-func AuthorizedPostRequest(client OAuth2Client, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Response, *http.Request, os.Error) {
+func AuthorizedPostRequest(client OAuth2Client, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Response, *http.Request, error) {
     return AuthorizedRequest(client, POST, headers, uri, query, r)
 }
 
-func AuthorizedPutRequestString(client OAuth2Client, headers http.Header, uri string, query url.Values, data string) (*http.Response, *http.Request, os.Error) {
+func AuthorizedPutRequestString(client OAuth2Client, headers http.Header, uri string, query url.Values, data string) (*http.Response, *http.Request, error) {
     return AuthorizedRequestBytes(client, PUT, headers, uri, query, []byte(data))
 }
 
-func AuthorizedPutRequestBytes(client OAuth2Client, headers http.Header, uri string, query url.Values, data []byte) (*http.Response, *http.Request, os.Error) {
+func AuthorizedPutRequestBytes(client OAuth2Client, headers http.Header, uri string, query url.Values, data []byte) (*http.Response, *http.Request, error) {
     return AuthorizedRequestBytes(client, PUT, headers, uri, query, data)
 }
 
-func AuthorizedPutRequest(client OAuth2Client, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Response, *http.Request, os.Error) {
+func AuthorizedPutRequest(client OAuth2Client, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Response, *http.Request, error) {
     return AuthorizedRequest(client, PUT, headers, uri, query, r)
 }
 
-func AuthorizedDeleteRequest(client OAuth2Client, headers http.Header, uri string, query url.Values) (*http.Response, *http.Request, os.Error) {
+func AuthorizedDeleteRequest(client OAuth2Client, headers http.Header, uri string, query url.Values) (*http.Response, *http.Request, error) {
     return AuthorizedRequest(client, DELETE, headers, uri, query, nil)
 }
 
-func AuthorizedRequestBytes(client OAuth2Client, method string, headers http.Header, uri string, query url.Values, data []byte) (*http.Response, *http.Request, os.Error) {
+func AuthorizedRequestBytes(client OAuth2Client, method string, headers http.Header, uri string, query url.Values, data []byte) (*http.Response, *http.Request, error) {
     var r io.Reader = nil
     if data != nil && len(data) > 0 {
         r = bytes.NewBuffer(data)
@@ -85,7 +85,7 @@ func AuthorizedRequestBytes(client OAuth2Client, method string, headers http.Hea
     return AuthorizedRequest(client, method, headers, uri, query, r)
 }
 
-func AuthorizedRequest(client OAuth2Client, method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Response, *http.Request, os.Error) {
+func AuthorizedRequest(client OAuth2Client, method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Response, *http.Request, error) {
     if len(method) <= 0 {
         method = GET
     }
@@ -101,8 +101,8 @@ func AuthorizedRequest(client OAuth2Client, method string, headers http.Header, 
         if err != nil {
             return nil, nil, err
         }
-        if len(parsedUrl.Scheme) > 0 && len(parsedUrl.RawAuthority) > 0 {
-            uri = parsedUrl.Scheme + "://" + parsedUrl.RawAuthority + parsedUrl.Path
+        if len(parsedUrl.Scheme) > 0 && len(parsedUrl.Host) > 0 {
+            uri = parsedUrl.String()
         } else {
             uri = parsedUrl.Path
         }
@@ -152,7 +152,7 @@ func MakeUrl(uri string, query url.Values) string {
     return fullUri
 }
 
-func MakeRequest(client OAuth2Client, req *http.Request) (*http.Response, *http.Request, os.Error) {
+func MakeRequest(client OAuth2Client, req *http.Request) (*http.Response, *http.Request, error) {
     if req == nil || client == nil {
         return nil, nil, nil
     }
@@ -165,13 +165,13 @@ func MakeRequest(client OAuth2Client, req *http.Request) (*http.Response, *http.
         c = new(http.Client)
     }
     if EnableLogHttpRequests {
-        dump, _ := http.DumpRequest(req, true)
+        dump, _ := httputil.DumpRequest(req, true)
         log.Print("Making Request:", "\n=================================\n", string(dump), "=================================\n")
     }
     resp, err := c.Do(req)
     if EnableLogHttpResponses {
         if resp != nil {
-            dump2, _ := http.DumpResponse(resp, true)
+            dump2, _ := httputil.DumpResponse(resp, true)
             log.Print("Received Response:", "\n=================================\n", string(dump2), "=================================\n")
         }
     }

@@ -2,17 +2,15 @@ package oauth2_client
 
 import (
     "github.com/pomack/jsonhelper.go/jsonhelper"
-    "container/vector"
-    "http"
     "io"
-    "os"
+    "net/http"
+    "net/url"
     "reflect"
     "strings"
     "time"
-    "url"
 )
 
-type MockRequestHandler func(client MockClient, req *http.Request) (resp *http.Response, err os.Error)
+type MockRequestHandler func(client MockClient, req *http.Request) (resp *http.Response, err error)
 
 // Credentials represents client, temporary and token credentials.
 type MockAuthToken interface {
@@ -26,8 +24,8 @@ type MockAuthToken interface {
     SetGuid(guid string)
     SessionHandle() string
     SetSessionHandle(handle string)
-    ExpiresAt() *time.Time
-    SetExpiresAt(expiresAt *time.Time)
+    ExpiresAt() time.Time
+    SetExpiresAt(expiresAt time.Time)
     UserId() string
     SetUserId(userId string)
     ScreenName() string
@@ -39,7 +37,7 @@ type mockAuthToken struct {
     secret        string
     guid          string
     sessionHandle string
-    expiresAt     *time.Time
+    expiresAt     time.Time
     userId        string
     screenName    string
 }
@@ -54,8 +52,8 @@ type MockClient interface {
     SetClient(client *http.Client)
     SetGenerateRequestTokenUrl(value string)
     SetRequestTokenGranted(req *http.Request, value bool)
-    SetExchangeRequestTokenForAccess(req *http.Request, error os.Error)
-    SetRetrieveUserInfo(userInfo UserInfo, error os.Error)
+    SetExchangeRequestTokenForAccess(req *http.Request, error error)
+    SetRetrieveUserInfo(userInfo UserInfo, error error)
     CurrentCredentials() AuthToken
     SetCurrentCredentials(value AuthToken)
     Realm() string
@@ -82,17 +80,17 @@ type MockClient interface {
     SetAuthorizedResourceProtected(protected bool)
     CallbackUrl() string
     SetCallbackUrl(callbackUrl string)
-    ParseRequestTokenResult(value string) (AuthToken, os.Error)
-    SetParseRequestTokenResult(value string, respToken MockAuthToken, respError os.Error)
-    ParseAccessTokenResult(value string) (AuthToken, os.Error)
-    SetParseAccessTokenResult(value string, respToken MockAuthToken, respError os.Error)
+    ParseRequestTokenResult(value string) (AuthToken, error)
+    SetParseRequestTokenResult(value string, respToken MockAuthToken, respError error)
+    ParseAccessTokenResult(value string) (AuthToken, error)
+    SetParseAccessTokenResult(value string, respToken MockAuthToken, respError error)
     SetRequestHandler(handler MockRequestHandler)
-    HandleRequest(req *http.Request) (resp *http.Response, err os.Error)
+    HandleRequest(req *http.Request) (resp *http.Response, err error)
 }
 
 type mockParseTokenResult struct {
     Token MockAuthToken
-    Error os.Error
+    Error error
 }
 
 type mockOAuthClient struct {
@@ -114,14 +112,14 @@ type mockOAuthClient struct {
     requestTokenUrl                       string
     requestTokenResults                   map[string]mockParseTokenResult
     accessTokenResults                    map[string]mockParseTokenResult
-    exchangeRequestTokenForAccess         vector.Vector
-    exchangeRequestTokenForAccessResponse vector.Vector
-    requestTokenGranted                   vector.Vector
-    requestTokenGrantedResponse           vector.Vector
-    createAuthorizedRequest               vector.Vector
-    createAuthorizedRequestResponse       vector.Vector
+    exchangeRequestTokenForAccess         []*http.Request
+    exchangeRequestTokenForAccessResponse []error
+    requestTokenGranted                   []*http.Request
+    requestTokenGrantedResponse           []bool
+    createAuthorizedRequest               []*http.Request
+    createAuthorizedRequestResponse       []interface{}
     userinfo                              UserInfo
-    userinfoError                         os.Error
+    userinfoError                         error
     requestHandler                        MockRequestHandler
 }
 
@@ -139,8 +137,8 @@ func (p *mockAuthToken) Guid() string                  { return p.guid }
 func (p *mockAuthToken) SetGuid(value string)          { p.guid = value }
 func (p *mockAuthToken) SessionHandle() string         { return p.sessionHandle }
 func (p *mockAuthToken) SetSessionHandle(value string) { p.sessionHandle = value }
-func (p *mockAuthToken) ExpiresAt() *time.Time         { return p.expiresAt }
-func (p *mockAuthToken) SetExpiresAt(value *time.Time) { p.expiresAt = value }
+func (p *mockAuthToken) ExpiresAt() time.Time          { return p.expiresAt }
+func (p *mockAuthToken) SetExpiresAt(value time.Time)  { p.expiresAt = value }
 func (p *mockAuthToken) UserId() string                { return p.userId }
 func (p *mockAuthToken) SetUserId(value string)        { p.userId = value }
 func (p *mockAuthToken) ScreenName() string            { return p.screenName }
@@ -190,20 +188,20 @@ func (p *mockOAuthClient) SetAuthorizedResourceProtected(value bool) {
 }
 func (p *mockOAuthClient) CallbackUrl() string         { return p.callbackUrl }
 func (p *mockOAuthClient) SetCallbackUrl(value string) { p.callbackUrl = value }
-func (p *mockOAuthClient) SetParseRequestTokenResult(value string, token MockAuthToken, error os.Error) {
+func (p *mockOAuthClient) SetParseRequestTokenResult(value string, token MockAuthToken, error error) {
     p.requestTokenResults[value] = mockParseTokenResult{
         Token: token,
         Error: error,
     }
 }
-func (p *mockOAuthClient) SetParseAccessTokenResult(value string, token MockAuthToken, error os.Error) {
+func (p *mockOAuthClient) SetParseAccessTokenResult(value string, token MockAuthToken, error error) {
     p.accessTokenResults[value] = mockParseTokenResult{
         Token: token,
         Error: error,
     }
 }
 
-func (p *mockOAuthClient) ParseRequestTokenResult(value string) (AuthToken, os.Error) {
+func (p *mockOAuthClient) ParseRequestTokenResult(value string) (AuthToken, error) {
     res, ok := p.requestTokenResults[value]
     if ok {
         return res.Token, res.Error
@@ -211,7 +209,7 @@ func (p *mockOAuthClient) ParseRequestTokenResult(value string) (AuthToken, os.E
     return nil, nil
 }
 
-func (p *mockOAuthClient) ParseAccessTokenResult(value string) (AuthToken, os.Error) {
+func (p *mockOAuthClient) ParseAccessTokenResult(value string) (AuthToken, error) {
     res, ok := p.accessTokenResults[value]
     if ok {
         return res.Token, res.Error
@@ -228,33 +226,29 @@ func (p *mockOAuthClient) GenerateRequestTokenUrl(properties jsonhelper.JSONObje
 func (p *mockOAuthClient) SetGenerateRequestTokenUrl(value string) { p.requestTokenUrl = value }
 func (p *mockOAuthClient) RequestTokenGranted(req *http.Request) bool {
     for i, v := range p.requestTokenGranted {
-        if r, ok := v.(*http.Request); ok {
-            if reflect.DeepEqual(r, req) {
-                return p.requestTokenGrantedResponse[i].(bool)
-            }
+        if reflect.DeepEqual(v, req) {
+            return p.requestTokenGrantedResponse[i]
         }
     }
     return true
 }
 func (p *mockOAuthClient) SetRequestTokenGranted(req *http.Request, value bool) {
-    p.requestTokenGranted.Push(req)
-    p.requestTokenGrantedResponse.Push(value)
+    p.requestTokenGranted = append(p.requestTokenGranted, req)
+    p.requestTokenGrantedResponse = append(p.requestTokenGrantedResponse, value)
 }
-func (p *mockOAuthClient) ExchangeRequestTokenForAccess(req *http.Request) os.Error {
+func (p *mockOAuthClient) ExchangeRequestTokenForAccess(req *http.Request) error {
     for i, v := range p.exchangeRequestTokenForAccess {
-        if r, ok := v.(*http.Request); ok {
-            if reflect.DeepEqual(r, req) {
-                return p.exchangeRequestTokenForAccessResponse[i].(os.Error)
-            }
+        if reflect.DeepEqual(v, req) {
+            return p.exchangeRequestTokenForAccessResponse[i]
         }
     }
     return nil
 }
-func (p *mockOAuthClient) SetExchangeRequestTokenForAccess(req *http.Request, error os.Error) {
-    p.exchangeRequestTokenForAccess.Push(req)
-    p.exchangeRequestTokenForAccessResponse.Push(error)
+func (p *mockOAuthClient) SetExchangeRequestTokenForAccess(req *http.Request, error error) {
+    p.exchangeRequestTokenForAccess = append(p.exchangeRequestTokenForAccess, req)
+    p.exchangeRequestTokenForAccessResponse = append(p.exchangeRequestTokenForAccessResponse, error)
 }
-func (p *mockOAuthClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (req *http.Request, err os.Error) {
+func (p *mockOAuthClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (req *http.Request, err error) {
     if len(method) <= 0 {
         method = GET
     }
@@ -275,15 +269,15 @@ func (p *mockOAuthClient) CreateAuthorizedRequest(method string, headers http.He
     }
     return req, err
 }
-func (p *mockOAuthClient) RetrieveUserInfo() (UserInfo, os.Error) { return p.userinfo, p.userinfoError }
-func (p *mockOAuthClient) SetRetrieveUserInfo(value UserInfo, error os.Error) {
+func (p *mockOAuthClient) RetrieveUserInfo() (UserInfo, error) { return p.userinfo, p.userinfoError }
+func (p *mockOAuthClient) SetRetrieveUserInfo(value UserInfo, error error) {
     p.userinfo, p.userinfoError = value, error
 }
 
 func (p *mockOAuthClient) SetRequestHandler(handler MockRequestHandler) {
     p.requestHandler = handler
 }
-func (p *mockOAuthClient) HandleRequest(req *http.Request) (*http.Response, os.Error) {
+func (p *mockOAuthClient) HandleRequest(req *http.Request) (*http.Response, error) {
     if p.requestHandler == nil {
         return nil, nil
     }

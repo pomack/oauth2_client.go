@@ -1,13 +1,13 @@
 package oauth2_client
 
 import (
+    "encoding/json"
+    "errors"
     "github.com/pomack/jsonhelper.go/jsonhelper"
-    "http"
-    "json"
-    "os"
-    "strings"
-    "url"
     "io"
+    "net/http"
+    "net/url"
+    "strings"
 )
 
 type TwitterRequestTokenResult interface {
@@ -177,15 +177,15 @@ func (p *twitterClient) RequestTokenGranted(req *http.Request) bool {
     return oauth1RequestTokenGranted(p, req)
 }
 
-func (p *twitterClient) ExchangeRequestTokenForAccess(req *http.Request) os.Error {
+func (p *twitterClient) ExchangeRequestTokenForAccess(req *http.Request) error {
     return oauth1ExchangeRequestTokenForAccess(p, req)
 }
 
-func (p *twitterClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error) {
+func (p *twitterClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, error) {
     return oauth1CreateAuthorizedRequest(p, method, headers, uri, query, r)
 }
 
-func (p *twitterClient) ParseRequestTokenResult(value string) (AuthToken, os.Error) {
+func (p *twitterClient) ParseRequestTokenResult(value string) (AuthToken, error) {
     LogDebug("+++++++++++++++++++++++++++++++")
     LogDebug("Twitter Client parsing request token result")
     t := new(twitterRequestTokenResult)
@@ -195,14 +195,14 @@ func (p *twitterClient) ParseRequestTokenResult(value string) (AuthToken, os.Err
         t.secret = m.Get("oauth_token_secret")
         t.callbackConfirmed = m.Get("oauth_callback_confirmed") == "true"
         if err == nil && len(m.Get("oauth_problem")) > 0 {
-            err = os.NewError(m.Get("oauth_problem"))
+            err = errors.New(m.Get("oauth_problem"))
         }
     }
     LogDebug("+++++++++++++++++++++++++++++++")
     return t, err
 }
 
-func (p *twitterClient) ParseAccessTokenResult(value string) (AuthToken, os.Error) {
+func (p *twitterClient) ParseAccessTokenResult(value string) (AuthToken, error) {
     LogDebug("+++++++++++++++++++++++++++++++")
     LogDebug("Twitter Client parsing access token result")
     t := new(twitterAccessTokenResult)
@@ -213,14 +213,14 @@ func (p *twitterClient) ParseAccessTokenResult(value string) (AuthToken, os.Erro
         t.userId = m.Get("user_id")
         t.screenName = m.Get("screen_name")
         if err == nil && len(m.Get("oauth_problem")) > 0 {
-            err = os.NewError(m.Get("oauth_problem"))
+            err = errors.New(m.Get("oauth_problem"))
         }
     }
     LogDebug("+++++++++++++++++++++++++++++++")
     return t, err
 }
 
-func (p *twitterClient) RetrieveUserInfo() (UserInfo, os.Error) {
+func (p *twitterClient) RetrieveUserInfo() (UserInfo, error) {
     req, err := p.CreateAuthorizedRequest(_TWITTER_USERINFO_METHOD, nil, _TWITTER_USERINFO_URL, nil, nil)
     if err != nil {
         return nil, err

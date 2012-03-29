@@ -1,54 +1,24 @@
+# Copyright 2012 Aalok Shah. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
 
-include $(GOROOT)/src/Make.inc
+all: install
 
-all: Make.deps install
+GOPATH:=$(GOPATH):`pwd`
+PACKAGE_NAME=github.com/pomack/oauth2_client.go/oauth2_client
 
-DIRS=\
-	oauth2_client\
-	example\
+clean:
+	GOPATH=$(GOPATH) go clean $(PACKAGE_NAME)
 
-TEST=\
-	$(filter-out $(NOTEST),$(DIRS))
+install:
+	GOPATH=$(GOPATH) go install $(PACKAGE_NAME)
 
+nuke:
+	GOPATH=$(GOPATH) go clean -i $(PACKAGE_NAME)
 
-clean.dirs: $(addsuffix .clean, $(DIRS))
-install.dirs: $(addsuffix .install, $(DIRS))
-nuke.dirs: $(addsuffix .nuke, $(DIRS))
-test.dirs: $(addsuffix .test, $(TEST))
+test:
+	GOPATH=$(GOPATH) go test $(PACKAGE_NAME)
 
-%.clean:
-	+cd $* && gomake clean
+check:
+	GOPATH=$(GOPATH) go build $(PACKAGE_NAME)
 
-%.install:
-	+cd $* && gomake install
-
-%.nuke:
-	+cd $* && gomake nuke
-
-%.test:
-	+cd $* && gomake test
-
-%.check:
-	+cd $* && gomake check
-
-clean: clean.dirs
-
-install: install.dirs
-
-test:   test.dirs
-
-check:	check.dirs
-
-#nuke: nuke.dirs
-#   rm -rf "$(GOROOT)"/pkg/*
-
-echo-dirs:
-	@echo $(DIRS)
-
-Make.deps:
-	./deps.bash
-
-deps:
-	./deps.bash
-
-#-include Make.deps

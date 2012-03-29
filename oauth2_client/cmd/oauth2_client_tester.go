@@ -1,18 +1,19 @@
 package main
 
 import (
+    "bytes"
+    "encoding/json"
+    "fmt"
     "github.com/pomack/jsonhelper.go/jsonhelper"
     "github.com/pomack/oauth2_client.go/oauth2_client"
-    "bytes"
-    "fmt"
-    "http"
     "io"
-    "json"
     "log"
+    "net/http"
+    "net/http/httputil"
+    "net/url"
     "os"
     "strings"
-    "template"
-    "url"
+    "text/template"
 )
 
 var (
@@ -297,17 +298,16 @@ const (
     </body>
 </html>
 `
-
 )
 
 var (
-    PARSED_GOOGLE_TEMPLATE *template.Template
+    PARSED_GOOGLE_TEMPLATE     *template.Template
     PARSED_GOOGLEPLUS_TEMPLATE *template.Template
-    PARSED_FACEBOOK_TEMPLATE *template.Template
-    PARSED_LINKEDIN_TEMPLATE *template.Template
-    PARSED_SMUGMUG_TEMPLATE *template.Template
-    PARSED_TWITTER_TEMPLATE *template.Template
-    PARSED_YAHOO_TEMPLATE *template.Template
+    PARSED_FACEBOOK_TEMPLATE   *template.Template
+    PARSED_LINKEDIN_TEMPLATE   *template.Template
+    PARSED_SMUGMUG_TEMPLATE    *template.Template
+    PARSED_TWITTER_TEMPLATE    *template.Template
+    PARSED_YAHOO_TEMPLATE      *template.Template
 )
 
 func HandlePage(w http.ResponseWriter, req *http.Request) {
@@ -372,7 +372,7 @@ func HandleClientAccept(w http.ResponseWriter, req *http.Request) {
     q := req.URL.Query()
     oauth2_client.LogInfo("=================================")
     oauth2_client.LogInfo("Received request from User: ")
-    reqBytes, _ := http.DumpRequest(req, true)
+    reqBytes, _ := httputil.DumpRequest(req, true)
     oauth2_client.LogInfo(string(reqBytes))
     oauth2_client.LogInfo("=================================")
     var useTemplate *template.Template = nil
@@ -401,11 +401,10 @@ func HandleClientAccept(w http.ResponseWriter, req *http.Request) {
             useTemplate = PARSED_LINKEDIN_TEMPLATE
         case "smugmug.com":
             // smugmug doesn't support query strings properly
-            newRawUrl := strings.Replace(req.RawURL, "site=smugmug.com?", "site=smugmug.com&", 1)
+            newRawUrl := strings.Replace(req.URL.String(), "site=smugmug.com?", "site=smugmug.com&", 1)
             newUrl, _ := url.Parse(newRawUrl)
             if newUrl != nil {
                 req.URL = newUrl
-                req.RawURL = newRawUrl
                 q = newUrl.Query()
             }
             c = NewSmugMugOauth2ClientTester(props)
@@ -434,7 +433,7 @@ func HandleClientAccept(w http.ResponseWriter, req *http.Request) {
         w.Header().Set("Content-Type", "text/plain")
         w.WriteHeader(500)
         io.WriteString(w, "Error exchanging request token for access token\n\n")
-        io.WriteString(w, err.String())
+        io.WriteString(w, err.Error())
         return
     }
     if useTemplate != nil {
@@ -449,13 +448,13 @@ func HandleClientAccept(w http.ResponseWriter, req *http.Request) {
         userInfo, err3 := c.RetrieveUserInfo()
         oauth2_client.LogInfof("UserInfo: %T %v", userInfo, userInfo)
         oauth2_client.LogInfof("Error: %T %v", err3, err3)
-    
+
         r, _, err2 := oauth2_client.AuthorizedRequest(c, method, headers, uri, query, reader)
         if err2 != nil {
             w.Header().Set("Content-Type", "text/plain")
             w.WriteHeader(500)
-            io.WriteString(w, "Error retrieving authorized response for " + uri + "?" + query.Encode() + "\n\n")
-            io.WriteString(w, err.String())
+            io.WriteString(w, "Error retrieving authorized response for "+uri+"?"+query.Encode()+"\n\n")
+            io.WriteString(w, err.Error())
             return
         }
         h := w.Header()
@@ -477,7 +476,7 @@ func HandleGenericOauthTestRequest(w http.ResponseWriter, req *http.Request, c o
             w.Header().Set("Content-Type", "text/plain")
             w.WriteHeader(500)
             io.WriteString(w, "Unable to parse form:\n\n")
-            io.WriteString(w, err.String())
+            io.WriteString(w, err.Error())
             return
         }
         for k, arr := range req.Form {
@@ -504,12 +503,12 @@ func HandleGenericOauthTestRequest(w http.ResponseWriter, req *http.Request, c o
     m["c"] = c
     m["url"] = uri
     if err != nil {
-        m["output"] = err.String()
+        m["output"] = err.Error()
         isError = true
     } else {
-        b, err := http.DumpResponse(resp, true)
+        b, err := httputil.DumpResponse(resp, true)
         if err != nil {
-            m["output"] = err.String()
+            m["output"] = err.Error()
             isError = true
         } else {
             m["output"] = string(b)
@@ -527,7 +526,6 @@ func HandleGenericOauthTestRequest(w http.ResponseWriter, req *http.Request, c o
         oauth2_client.LogErrorf("Error: %T %v", err, err)
     }
 }
-
 
 func HandleGoogleOauthTestRequest(w http.ResponseWriter, req *http.Request) {
     HandleGenericOauthTestRequest(w, req, oauth2_client.NewGoogleClient(), oauth2_client.GET, "google.client.test_url", "", PARSED_GOOGLE_TEMPLATE)
@@ -557,7 +555,6 @@ func HandleYahooOauthTestRequest(w http.ResponseWriter, req *http.Request) {
     HandleGenericOauthTestRequest(w, req, oauth2_client.NewYahooClient(), oauth2_client.GET, "yahoo.client.test_url", "", PARSED_YAHOO_TEMPLATE)
 }
 
-
 func getProperties() jsonhelper.JSONObject {
     filename := settingsFilename
     if filename == "" {
@@ -567,7 +564,7 @@ func getProperties() jsonhelper.JSONObject {
     return props
 }
 
-func readPropertiesFile(filename string) (jsonhelper.JSONObject, os.Error) {
+func readPropertiesFile(filename string) (jsonhelper.JSONObject, error) {
     props := jsonhelper.NewJSONObject()
     propFile, err := os.Open(filename)
     if propFile == nil {
@@ -576,7 +573,7 @@ func readPropertiesFile(filename string) (jsonhelper.JSONObject, os.Error) {
     }
     defer propFile.Close()
     if err != nil {
-        log.Fatal("Error opening file ", filename, ": ", err.String())
+        log.Fatal("Error opening file ", filename, ": ", err.Error())
         return props, err
     }
     json.NewDecoder(propFile).Decode(&props)
@@ -590,33 +587,33 @@ func readPropertiesFile(filename string) (jsonhelper.JSONObject, os.Error) {
 }
 
 func main() {
-	oauth2_client.EnableLogHttpRequests   = true
-	oauth2_client.EnableLogHttpResponses  = true
-	oauth2_client.EnableLogDebug          = true
-	oauth2_client.EnableLogInfo           = true
-	oauth2_client.EnableLogError          = true
-	nextIsSettingsFile := false
-	for _, arg := range os.Args[1:] {
-	    if nextIsSettingsFile {
-	        settingsFilename = arg
-	        nextIsSettingsFile = false
-	    } else if arg == "-f" {
-	        nextIsSettingsFile = true
-	    } else if arg == "-h" || arg == "--help" || arg == "-help" || arg == "/?" {
-	        fmt.Printf("Usage:\n\t%s [-f <settings filename>]\n\n", os.Args[0])
-	        return
-	    } else {
-	        fmt.Printf("Unexpected argument: %s\nUsage:\n\t%s [-f <settings filename>]\n\n", arg, os.Args[0])
-	        return
-	    }
-	}
-	PARSED_GOOGLE_TEMPLATE = template.Must(template.New("google").Parse(GOOGLE_TEST_PAGE))
-	PARSED_GOOGLEPLUS_TEMPLATE = template.Must(template.New("googleplus").Parse(GOOGLEPLUS_TEST_PAGE))
-	PARSED_FACEBOOK_TEMPLATE = template.Must(template.New("facebook").Parse(FACEBOOK_TEST_PAGE))
-	PARSED_LINKEDIN_TEMPLATE = template.Must(template.New("linkedin").Parse(LINKEDIN_TEST_PAGE))
-	PARSED_SMUGMUG_TEMPLATE = template.Must(template.New("smugmug").Parse(SMUGMUG_TEST_PAGE))
-	PARSED_TWITTER_TEMPLATE = template.Must(template.New("twitter").Parse(TWITTER_TEST_PAGE))
-	PARSED_YAHOO_TEMPLATE = template.Must(template.New("yahoo").Parse(YAHOO_TEST_PAGE))
+    oauth2_client.EnableLogHttpRequests = true
+    oauth2_client.EnableLogHttpResponses = true
+    oauth2_client.EnableLogDebug = true
+    oauth2_client.EnableLogInfo = true
+    oauth2_client.EnableLogError = true
+    nextIsSettingsFile := false
+    for _, arg := range os.Args[1:] {
+        if nextIsSettingsFile {
+            settingsFilename = arg
+            nextIsSettingsFile = false
+        } else if arg == "-f" {
+            nextIsSettingsFile = true
+        } else if arg == "-h" || arg == "--help" || arg == "-help" || arg == "/?" {
+            fmt.Printf("Usage:\n\t%s [-f <settings filename>]\n\n", os.Args[0])
+            return
+        } else {
+            fmt.Printf("Unexpected argument: %s\nUsage:\n\t%s [-f <settings filename>]\n\n", arg, os.Args[0])
+            return
+        }
+    }
+    PARSED_GOOGLE_TEMPLATE = template.Must(template.New("google").Parse(GOOGLE_TEST_PAGE))
+    PARSED_GOOGLEPLUS_TEMPLATE = template.Must(template.New("googleplus").Parse(GOOGLEPLUS_TEST_PAGE))
+    PARSED_FACEBOOK_TEMPLATE = template.Must(template.New("facebook").Parse(FACEBOOK_TEST_PAGE))
+    PARSED_LINKEDIN_TEMPLATE = template.Must(template.New("linkedin").Parse(LINKEDIN_TEST_PAGE))
+    PARSED_SMUGMUG_TEMPLATE = template.Must(template.New("smugmug").Parse(SMUGMUG_TEST_PAGE))
+    PARSED_TWITTER_TEMPLATE = template.Must(template.New("twitter").Parse(TWITTER_TEST_PAGE))
+    PARSED_YAHOO_TEMPLATE = template.Must(template.New("yahoo").Parse(YAHOO_TEST_PAGE))
     http.HandleFunc("/auth/oauth2/oauth2callback/", HandleClientAccept)
     http.HandleFunc("/auth/oauth2/oauth2callback", HandleClientAccept)
     http.HandleFunc("/facebook/", HandleFacebookOauthRequest)
@@ -637,9 +634,6 @@ func main() {
     log.Print("About to start serving on port 8000")
     err := http.ListenAndServe(":8000", nil)
     if err != nil {
-        log.Fatal("ListenAndServe: ", err.String())
+        log.Fatal("ListenAndServe: ", err.Error())
     }
 }
-
-
-

@@ -1,32 +1,32 @@
 package oauth2_client
 
 import (
-    "github.com/pomack/jsonhelper.go/jsonhelper"
     "bytes"
-    "http"
+    "encoding/json"
+    "errors"
     "fmt"
+    "github.com/pomack/jsonhelper.go/jsonhelper"
     "io"
     "io/ioutil"
-    "json"
-    "os"
+    "net/http"
+    "net/url"
     "strconv"
     "strings"
     "time"
-    "url"
 )
 
 type FacebookAccessTokenResult interface {
     AccessToken() string
-    ExpiresAt() *time.Time
+    ExpiresAt() time.Time
 }
 
 type facebookAccessTokenResult struct {
     accessToken string
-    expiresAt   *time.Time
+    expiresAt   time.Time
 }
 
-func (p *facebookAccessTokenResult) AccessToken() string   { return p.accessToken }
-func (p *facebookAccessTokenResult) ExpiresAt() *time.Time { return p.expiresAt }
+func (p *facebookAccessTokenResult) AccessToken() string  { return p.accessToken }
+func (p *facebookAccessTokenResult) ExpiresAt() time.Time { return p.expiresAt }
 
 type FacebookLocation interface {
     Id() string
@@ -40,7 +40,7 @@ type facebookLocation struct {
 
 func (p *facebookLocation) Id() string   { return p.id }
 func (p *facebookLocation) Name() string { return p.name }
-func (p *facebookLocation) UnmarshalJSON(data []byte) os.Error {
+func (p *facebookLocation) UnmarshalJSON(data []byte) error {
     props := jsonhelper.NewJSONObject()
     err := json.Unmarshal(data, &props)
     p.id = props.GetAsString("id")
@@ -66,7 +66,7 @@ type FacebookUserInfoResult interface {
     Timezone() float64
     Locale() string
     Verified() bool
-    UpdatedTime() *time.Time
+    UpdatedTime() time.Time
 }
 
 type facebookUserInfoResult struct {
@@ -83,7 +83,7 @@ type facebookUserInfoResult struct {
     timezone    float64          `json:"timezone"`
     locale      string           `json:"locale"`
     verified    bool             `json:"verified"`
-    updatedTime *time.Time       `json:"updated_time"`
+    updatedTime time.Time        `json:"updated_time"`
 }
 
 func (p *facebookUserInfoResult) Guid() string               { return p.id }
@@ -104,8 +104,8 @@ func (p *facebookUserInfoResult) Email() string              { return p.email }
 func (p *facebookUserInfoResult) Timezone() float64          { return p.timezone }
 func (p *facebookUserInfoResult) Locale() string             { return p.locale }
 func (p *facebookUserInfoResult) Verified() bool             { return p.verified }
-func (p *facebookUserInfoResult) UpdatedTime() *time.Time    { return p.updatedTime }
-func (p *facebookUserInfoResult) UnmarshalJSON(data []byte) os.Error {
+func (p *facebookUserInfoResult) UpdatedTime() time.Time     { return p.updatedTime }
+func (p *facebookUserInfoResult) UnmarshalJSON(data []byte) error {
     props := jsonhelper.NewJSONObject()
     err := json.Unmarshal(data, &props)
     p.id = props.GetAsString("id")
@@ -127,27 +127,27 @@ func (p *facebookUserInfoResult) UnmarshalJSON(data []byte) os.Error {
 
 type facebookClient struct {
     client       *http.Client
-    clientId     string     "client_id"
-    clientSecret string     "client_secret"
-    redirectUri  string     "redirect_uri"
-    scope        string     "scope"
-    state        string     "state"
-    accessToken  string     "access_token"
-    expiresAt    *time.Time "expires_at"
-    tokenType    string     "token_type"
-    refreshToken string     "refresh_token"
+    clientId     string    "client_id"
+    clientSecret string    "client_secret"
+    redirectUri  string    "redirect_uri"
+    scope        string    "scope"
+    state        string    "state"
+    accessToken  string    "access_token"
+    expiresAt    time.Time "expires_at"
+    tokenType    string    "token_type"
+    refreshToken string    "refresh_token"
 }
 
 func NewFacebookClient() *facebookClient {
     return &facebookClient{client: new(http.Client)}
 }
-func (p *facebookClient) ClientId() string      { return p.clientId }
-func (p *facebookClient) ClientSecret() string  { return p.clientSecret }
-func (p *facebookClient) RedirectUri() string   { return p.redirectUri }
-func (p *facebookClient) AccessToken() string   { return p.accessToken }
-func (p *facebookClient) ExpiresAt() *time.Time { return p.expiresAt }
+func (p *facebookClient) ClientId() string     { return p.clientId }
+func (p *facebookClient) ClientSecret() string { return p.clientSecret }
+func (p *facebookClient) RedirectUri() string  { return p.redirectUri }
+func (p *facebookClient) AccessToken() string  { return p.accessToken }
+func (p *facebookClient) ExpiresAt() time.Time { return p.expiresAt }
 func (p *facebookClient) ExpiresAtString() string {
-    if p.expiresAt == nil {
+    if p.expiresAt.IsZero() {
         return ""
     }
     return p.expiresAt.Format(FACEBOOK_DATETIME_FORMAT)
@@ -183,9 +183,9 @@ func (p *facebookClient) Initialize(properties jsonhelper.JSONObject) {
         p.accessToken = v.(string)
     }
     if v, ok := properties["facebook.client.expires_at"]; ok {
-        seconds, err := strconv.Atoi64(v.(string))
+        seconds, err := strconv.ParseInt(v.(string), 10, 64)
         if err == nil {
-            p.expiresAt = time.SecondsToUTC(time.Seconds() + seconds)
+            p.expiresAt = time.Now().Add(time.Second * time.Duration(seconds)).UTC()
         } else {
             if expiresAt, err := time.Parse(FACEBOOK_DATETIME_FORMAT, v.(string)); err == nil {
                 p.expiresAt = expiresAt
@@ -234,7 +234,7 @@ func (p *facebookClient) GenerateAuthorizationCodeUri(code string) (string, url.
     return _FACEBOOK_AUTHORIZATION_CODE_URL, m
 }
 
-func (p *facebookClient) ReadAccessTokenFromResponse(r *http.Response, now *time.Time) os.Error {
+func (p *facebookClient) ReadAccessTokenFromResponse(r *http.Response, now time.Time) error {
     body_bytes, err := ioutil.ReadAll(r.Body)
     if err != nil {
         LogError("Unable to read the response from ", r.Body)
@@ -244,7 +244,7 @@ func (p *facebookClient) ReadAccessTokenFromResponse(r *http.Response, now *time
     return p.ReadAccessToken(body, now)
 }
 
-func (p *facebookClient) ReadAccessToken(body string, now *time.Time) os.Error {
+func (p *facebookClient) ReadAccessToken(body string, now time.Time) error {
     params, err := url.ParseQuery(body)
     if err != nil {
         s := jsonhelper.NewJSONObject()
@@ -252,16 +252,16 @@ func (p *facebookClient) ReadAccessToken(body string, now *time.Time) os.Error {
             LogError("Unable to read error response: ", body)
             return err2
         }
-        return os.NewError(fmt.Sprintf("%v", s))
+        return errors.New(fmt.Sprintf("%v", s))
     }
     if params == nil {
         params = make(url.Values)
     }
     t := &facebookAccessTokenResult{accessToken: params.Get("access_token")}
     if len(params.Get("expires")) > 0 {
-        expiresIn, _ := strconv.Atoi64(params.Get("expires"))
+        expiresIn, _ := strconv.ParseInt(params.Get("expires"), 10, 64)
         if expiresIn >= 0 {
-            t.expiresAt = time.SecondsToUTC(now.Seconds() + expiresIn)
+            t.expiresAt = time.Unix(now.Unix()+expiresIn, 0).UTC()
         }
     }
     if len(t.accessToken) > 0 {
@@ -272,8 +272,8 @@ func (p *facebookClient) ReadAccessToken(body string, now *time.Time) os.Error {
 
 }
 
-func (p *facebookClient) HandleClientAccept(code string) os.Error {
-    now := time.UTC()
+func (p *facebookClient) HandleClientAccept(code string) error {
+    now := time.Now().UTC()
     uri, m := p.GenerateAuthorizationCodeUri(code)
     req, err := http.NewRequest(_FACEBOOK_AUTHORIZATION_CODE_METHOD, uri, bytes.NewBufferString(m.Encode()))
     if err != nil {
@@ -290,24 +290,24 @@ func (p *facebookClient) HandleClientAccept(code string) os.Error {
     return p.ReadAccessTokenFromResponse(r, now)
 }
 
-func (p *facebookClient) HandleClientAcceptRequest(req *http.Request) os.Error {
+func (p *facebookClient) HandleClientAcceptRequest(req *http.Request) error {
     q := req.URL.Query()
     error := q.Get("error")
     if len(error) > 0 {
         LogError("Received error in client accept request")
-        return os.NewError(error)
+        return errors.New(error)
     }
     code := q.Get("code")
     if len(code) <= 0 {
         LogError("Received no code in client accept request")
-        return os.NewError("Expected URL parameter \"code\" in request but not found")
+        return errors.New("Expected URL parameter \"code\" in request but not found")
     }
     return p.HandleClientAccept(code)
 }
 
-func (p *facebookClient) UpdateAccessToken() (string, os.Error) {
-    now := time.UTC()
-    if p.expiresAt == nil || p.expiresAt.Seconds() <= now.Seconds() {
+func (p *facebookClient) UpdateAccessToken() (string, error) {
+    now := time.Now().UTC()
+    if p.expiresAt.IsZero() || p.expiresAt.Unix() <= now.Unix() {
         m := make(url.Values)
         m.Add("client_id", p.clientId)
         m.Add("client_secret", p.clientSecret)
@@ -369,13 +369,13 @@ func (p *facebookClient) GenerateRequestTokenUrl(properties jsonhelper.JSONObjec
 
 func (p *facebookClient) RequestTokenGranted(req *http.Request) bool {
     if err := p.HandleClientAcceptRequest(req); err != nil {
-        LogError("Error in client accept request: ", err.String())
+        LogError("Error in client accept request: ", err.Error())
         return false
     }
     return true
 }
 
-func (p *facebookClient) ExchangeRequestTokenForAccess(req *http.Request) os.Error {
+func (p *facebookClient) ExchangeRequestTokenForAccess(req *http.Request) error {
     if len(p.refreshToken) <= 0 {
         if err := p.HandleClientAcceptRequest(req); err != nil {
             return err
@@ -385,7 +385,7 @@ func (p *facebookClient) ExchangeRequestTokenForAccess(req *http.Request) os.Err
     return err
 }
 
-func (p *facebookClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error) {
+func (p *facebookClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, error) {
     if len(method) <= 0 {
         method = GET
     }
@@ -405,7 +405,7 @@ func (p *facebookClient) CreateAuthorizedRequest(method string, headers http.Hea
     return http.NewRequest(method, fullUrl, r)
 }
 
-func (p *facebookClient) RetrieveUserInfo() (UserInfo, os.Error) {
+func (p *facebookClient) RetrieveUserInfo() (UserInfo, error) {
     req, err := p.CreateAuthorizedRequest(_FACEBOOK_USERINFO_METHOD, nil, _FACEBOOK_USERINFO_URL, nil, nil)
     if err != nil {
         return nil, err

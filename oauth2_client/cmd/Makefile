@@ -1,14 +1,24 @@
-include $(GOROOT)/src/Make.inc
+# Copyright 2012 Aalok Shah. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
 
-TARG=oauth2_client_tester
-GOFILES=\
-    facebook.go\
-    google.go\
-    googleplus.go\
-    linkedin.go\
-    smugmug.go\
-    twitter.go\
-    yahoo.go\
-    oauth2_client_tester.go\
+all: install
 
-include $(GOROOT)/src/Make.cmd
+GOPATH:=$(GOPATH):`pwd`
+BIN_NAME=oauth2_client_tester
+
+clean:
+	GOPATH=$(GOPATH) go clean -x
+
+install:
+	GOPATH=$(GOPATH) go build -v -o $(BIN_NAME)
+
+nuke:
+	GOPATH=$(GOPATH) go clean -i -x
+
+test:
+
+check:
+	GOPATH=$(GOPATH) go build -v -o $(BIN_NAME)
+	-/bin/rm -f $(BIN_NAME)
+

@@ -1,16 +1,16 @@
 package main
 
 import (
+    "encoding/json"
     "github.com/pomack/jsonhelper.go/jsonhelper"
     "github.com/pomack/oauth2_client.go/oauth2_client"
-    "http"
     "io"
-    "json"
     "log"
+    "net/http"
 )
 
 const (
-    GOOGLE_SETTINGS_STRING   = `{
+    GOOGLE_SETTINGS_STRING = `{
         "google.client.id" : "yourclientid.apps.googleusercontent.com",
         "google.client.secret" : "yourpassword",
         "google.client.redirect_uri" : "http://localhost:8000/auth/oauth2/oauth2callback/",
@@ -65,9 +65,9 @@ func HandleSuccessfulLogin(w http.ResponseWriter, req *http.Request) {
 func main() {
     http.HandleFunc("/", HandleInitialClientRedirect)
     http.HandleFunc("/auth/oauth2/oauth2callback/", HandleSuccessfulLogin)
-    log.Print("Open your browser and go to http://localhost:8080/\n")
+    log.Print("Open your browser and go to http://localhost:8000/\n")
     err := http.ListenAndServe(":8000", nil)
     if err != nil {
-        log.Printf("ListenAndServe: ", err.String())
+        log.Printf("ListenAndServe: ", err.Error())
     }
 }

@@ -1,23 +1,23 @@
 package oauth2_client
 
 import (
-    "github.com/pomack/jsonhelper.go/jsonhelper"
     "bytes"
-    "container/vector"
     "crypto/hmac"
     "crypto/rand"
-    "encoding/binary"
+    "crypto/sha1"
     "encoding/base64"
+    "encoding/binary"
+    "errors"
     "fmt"
-    "http"
+    "github.com/pomack/jsonhelper.go/jsonhelper"
     "io"
     "io/ioutil"
-    "os"
+    "net/http"
+    "net/url"
     "sort"
     "strconv"
     "strings"
     "time"
-    "url"
 )
 
 // Credentials represents client, temporary and token credentials.
@@ -55,8 +55,8 @@ type OAuth1Client interface {
     AuthorizationUrl() string
     AuthorizedResourceProtected() bool
     CallbackUrl() string
-    ParseRequestTokenResult(value string) (AuthToken, os.Error)
-    ParseAccessTokenResult(value string) (AuthToken, os.Error)
+    ParseRequestTokenResult(value string) (AuthToken, error)
+    ParseAccessTokenResult(value string) (AuthToken, error)
 }
 
 type stdOAuth1Client struct {
@@ -69,7 +69,7 @@ type stdOAuth1Client struct {
     callbackUrl        string
 }
 
-type RequestHandler func(*http.Response, *http.Request, os.Error)
+type RequestHandler func(*http.Response, *http.Request, error)
 
 type oauth1SecretInfo struct {
     service string
@@ -84,7 +84,7 @@ func newNonce() string {
     if nonceCounter == 0 {
         binary.Read(rand.Reader, binary.BigEndian, &nonceCounter)
     }
-    result := strconv.Uitob64(nonceCounter, 16)
+    result := strconv.FormatUint(nonceCounter, 16)
     nonceCounter += 1
     return result
 }
@@ -154,7 +154,7 @@ func (p *stdOAuth1Client) ConsumerSecret() string                { return p.cons
 func (p *stdOAuth1Client) CallbackUrl() string                   { return p.callbackUrl }
 func (p *stdOAuth1Client) SetCurrentCredentials(value AuthToken) { p.currentCredentials = value }
 
-func oauth1PrepareRequest(p OAuth1Client, credentials AuthToken, method, uri string, additional_params url.Values, timestamp *time.Time, nonce string) url.Values {
+func oauth1PrepareRequest(p OAuth1Client, credentials AuthToken, method, uri string, additional_params url.Values, timestamp time.Time, nonce string) url.Values {
     if len(method) <= 0 {
         method = GET
     }
@@ -165,10 +165,10 @@ func oauth1PrepareRequest(p OAuth1Client, credentials AuthToken, method, uri str
     }
     params.Set("oauth_consumer_key", p.ConsumerKey())
     params.Set("oauth_signature_method", "HMAC-SHA1")
-    if timestamp == nil {
-        timestamp = time.UTC()
+    if timestamp.IsZero() {
+        timestamp = time.Now().UTC()
     }
-    params.Set("oauth_timestamp", strconv.Itoa64(timestamp.Seconds()))
+    params.Set("oauth_timestamp", strconv.FormatInt(timestamp.Unix(), 10))
     if len(nonce) <= 0 {
         nonce = newNonce()
     }
@@ -197,24 +197,24 @@ func oauth1PrepareRequest(p OAuth1Client, credentials AuthToken, method, uri str
             }
         }
     }
-    params_arr := new(vector.StringVector)
+    params_arr := make([]string, 0, 10)
     for _, k := range getSortedKeys(params) {
         arr := params[k]
         ek := oauthEncode(k)
         for _, v := range arr {
-            params_arr.Push(strings.Join([]string{ek, oauthEncode(v)}, "="))
+            params_arr = append(params_arr, strings.Join([]string{ek, oauthEncode(v)}, "="))
         }
     }
-    params_str := strings.Join(*params_arr, "&")
+    params_str := strings.Join(params_arr, "&")
     message := strings.Join([]string{method, oauthEncode(strings.TrimSpace(strings.SplitN(uri, "?", 2)[0])), oauthEncode(params_str)}, "&")
     secret := ""
     if credentials != nil && len(credentials.Secret()) > 0 {
         secret = credentials.Secret()
     }
     key := strings.Join([]string{p.ConsumerSecret(), secret}, "&")
-    h := hmac.NewSHA1([]byte(key))
+    h := hmac.New(sha1.New, []byte(key))
     h.Write([]byte(message))
-    sum := h.Sum()
+    sum := h.Sum(nil)
 
     encodedSum := make([]byte, base64.StdEncoding.EncodedLen(len(sum)))
     base64.StdEncoding.Encode(encodedSum, sum)
@@ -224,9 +224,9 @@ func oauth1PrepareRequest(p OAuth1Client, credentials AuthToken, method, uri str
     return params
 }
 
-func oauth1GenerateRequest(p OAuth1Client, credentials AuthToken, headers http.Header, method, uri string, additional_params url.Values, protected bool) (*http.Request, os.Error) {
+func oauth1GenerateRequest(p OAuth1Client, credentials AuthToken, headers http.Header, method, uri string, additional_params url.Values, protected bool) (*http.Request, error) {
     finalUri, params := splitUrl(uri, additional_params)
-    v := oauth1PrepareRequest(p, credentials, method, uri, params, nil, "")
+    v := oauth1PrepareRequest(p, credentials, method, uri, params, time.Time{}, "")
     var r io.Reader
     if protected {
         if headers == nil {
@@ -277,7 +277,7 @@ func oauth1GenerateRequest(p OAuth1Client, credentials AuthToken, headers http.H
     return req, err
 }
 
-func OAuth1MakeSyncRequest(p OAuth1Client, credentials AuthToken, headers http.Header, method, uri string, additional_params url.Values, protected bool) (*http.Response, *http.Request, os.Error) {
+func OAuth1MakeSyncRequest(p OAuth1Client, credentials AuthToken, headers http.Header, method, uri string, additional_params url.Values, protected bool) (*http.Response, *http.Request, error) {
     req, err := oauth1GenerateRequest(p, credentials, headers, method, uri, additional_params, protected)
     if err != nil {
         return nil, req, err
@@ -292,14 +292,14 @@ func MakeAsyncRequest(p OAuth1Client, req *http.Request, handler RequestHandler)
     }
 }
 
-func parseRequestTokenResult(p OAuth1Client, value string) (AuthToken, os.Error) {
+func parseRequestTokenResult(p OAuth1Client, value string) (AuthToken, error) {
     return p.ParseRequestTokenResult(value)
 }
-func parseAccessTokenResult(p OAuth1Client, value string) (AuthToken, os.Error) {
+func parseAccessTokenResult(p OAuth1Client, value string) (AuthToken, error) {
     return p.ParseAccessTokenResult(value)
 }
 
-func defaultOAuth1ParseAuthToken(value string) (AuthToken, os.Error) {
+func defaultOAuth1ParseAuthToken(value string) (AuthToken, error) {
     m, err := url.ParseQuery(value)
     var cred AuthToken
     if m != nil {
@@ -310,7 +310,7 @@ func defaultOAuth1ParseAuthToken(value string) (AuthToken, os.Error) {
     return cred, err
 }
 
-func getAuthToken(p OAuth1Client) (AuthToken, os.Error) {
+func getAuthToken(p OAuth1Client) (AuthToken, error) {
     resp, _, err := OAuth1MakeSyncRequest(p, nil, nil, p.RequestUrlMethod(), p.RequestUrl(), nil, p.RequestUrlProtected())
     if err != nil {
         return nil, err
@@ -328,12 +328,12 @@ func getAuthToken(p OAuth1Client) (AuthToken, os.Error) {
             secret:  credentials.Secret(),
         }
     } else if err == nil && len(body) > 0 {
-        err = os.NewError(body)
+        err = errors.New(body)
     }
     return credentials, err
 }
 
-func oauth1RequestToken(p OAuth1Client, client *http.Client, credentials AuthToken, verifier string) (AuthToken, string, os.Error) {
+func oauth1RequestToken(p OAuth1Client, client *http.Client, credentials AuthToken, verifier string) (AuthToken, string, error) {
     if oauth1TokenSecretMap == nil {
         oauth1TokenSecretMap = make(map[string]*oauth1SecretInfo)
     }
@@ -355,7 +355,7 @@ func oauth1RequestToken(p OAuth1Client, client *http.Client, credentials AuthTok
         additional_params.Set("oauth_verifier", auth_verifier)
     }
     resp, _, err := OAuth1MakeSyncRequest(p, cred, nil, p.AccessUrlMethod(), p.AccessUrl(), additional_params, p.AccessUrlProtected())
-    var err2 os.Error
+    var err2 error
     var body string
     if resp != nil && resp.Body != nil {
         var body_bytes []byte
@@ -370,7 +370,7 @@ func oauth1RequestToken(p OAuth1Client, client *http.Client, credentials AuthTok
             secret:  c.Secret(),
         }
     } else if err2 == nil && len(body) > 0 {
-        err2 = os.NewError(body)
+        err2 = errors.New(body)
     }
     if err == nil {
         err = err2
@@ -381,11 +381,11 @@ func oauth1RequestToken(p OAuth1Client, client *http.Client, credentials AuthTok
     return c, body, err
 }
 
-func (p *stdOAuth1Client) ParseRequestTokenResult(value string) (AuthToken, os.Error) {
+func (p *stdOAuth1Client) ParseRequestTokenResult(value string) (AuthToken, error) {
     return defaultOAuth1ParseAuthToken(value)
 }
 
-func (p *stdOAuth1Client) ParseAccessTokenResult(value string) (AuthToken, os.Error) {
+func (p *stdOAuth1Client) ParseAccessTokenResult(value string) (AuthToken, error) {
     return defaultOAuth1ParseAuthToken(value)
 }
 
@@ -431,16 +431,16 @@ func oauth1RequestTokenGranted(p OAuth1Client, req *http.Request) bool {
     return true
 }
 
-func oauth1ExchangeRequestTokenForAccess(p OAuth1Client, req *http.Request) os.Error {
+func oauth1ExchangeRequestTokenForAccess(p OAuth1Client, req *http.Request) error {
     if req == nil {
-        return os.NewError("Request cannot be nil")
+        return errors.New("Request cannot be nil")
     }
     q := req.URL.Query()
     token := q.Get("oauth_token")
     verifier := q.Get("oauth_verifier")
     // apparently smugmug.com doesn't specify an oauth_verifier, so don't require it
     if len(token) <= 0 {
-        return os.NewError("Expected oauth_token")
+        return errors.New("Expected oauth_token")
     }
     secret_info, _ := oauth1TokenSecretMap[token]
     secret := ""
@@ -456,12 +456,12 @@ func oauth1ExchangeRequestTokenForAccess(p OAuth1Client, req *http.Request) os.E
         LogInfof("Setting current credentials to: %T -> %v", newCredentials, newCredentials)
         p.SetCurrentCredentials(newCredentials)
     } else if len(body) > 0 {
-        return os.NewError(body)
+        return errors.New(body)
     }
     return nil
 }
 
-func oauth1CreateAuthorizedRequest(p OAuth1Client, method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error) {
+func oauth1CreateAuthorizedRequest(p OAuth1Client, method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, error) {
     if len(method) <= 0 {
         method = GET
     }

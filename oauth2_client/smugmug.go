@@ -1,26 +1,27 @@
 package oauth2_client
 
 import (
+    "encoding/json"
+    "errors"
     "github.com/pomack/jsonhelper.go/jsonhelper"
-    "http"
     "io"
-    "json"
-    "os"
+    "net/http"
+    "net/url"
     "strconv"
     "strings"
     "time"
-    "url"
 )
 
 type SmugMugUserInfoResult interface {
-    Id() string
+    UserInfo
+    Id() int64
     Name() string
     Nickname() string
-    Url() string
     AccountStatus() string
     AccountType() string
-    FileSizeLimit() float64
+    FileSizeLimit() int64
     SmugVault() bool
+    FromJSON(props jsonhelper.JSONObject)
 }
 
 type smugMugUserInfoResult struct {
@@ -34,7 +35,10 @@ type smugMugUserInfoResult struct {
     smugVault     bool   `json:"SmugVault"`
 }
 
-func (p *smugMugUserInfoResult) Guid() string     { return strconv.Itoa64(p.id) }
+func NewSmugMugUserInfoResult() SmugMugUserInfoResult {
+    return new(smugMugUserInfoResult)
+}
+func (p *smugMugUserInfoResult) Guid() string     { return strconv.FormatInt(p.id, 10) }
 func (p *smugMugUserInfoResult) Username() string { return p.nickname }
 func (p *smugMugUserInfoResult) GivenName() string {
     parts := strings.SplitN(p.name, " ", 2)
@@ -74,19 +78,19 @@ type SmugMugAccessTokenResult interface {
     AuthToken
     Guid() string
     SessionHandle() string
-    ExpiresAt() *time.Time
+    ExpiresAt() time.Time
 }
 
 type smugMugAccessTokenResult struct {
     stdAuthToken
     guid          string
     sessionHandle string
-    expiresAt     *time.Time
+    expiresAt     time.Time
 }
 
 func (p *smugMugAccessTokenResult) Guid() string          { return p.guid }
 func (p *smugMugAccessTokenResult) SessionHandle() string { return p.sessionHandle }
-func (p *smugMugAccessTokenResult) ExpiresAt() *time.Time { return p.expiresAt }
+func (p *smugMugAccessTokenResult) ExpiresAt() time.Time  { return p.expiresAt }
 
 func NewSmugMugClient() OAuth2Client {
     return &smugMugClient{}
@@ -146,15 +150,15 @@ func (p *smugMugClient) RequestTokenGranted(req *http.Request) bool {
     return oauth1RequestTokenGranted(p, req)
 }
 
-func (p *smugMugClient) ExchangeRequestTokenForAccess(req *http.Request) os.Error {
+func (p *smugMugClient) ExchangeRequestTokenForAccess(req *http.Request) error {
     return oauth1ExchangeRequestTokenForAccess(p, req)
 }
 
-func (p *smugMugClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error) {
+func (p *smugMugClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, error) {
     return oauth1CreateAuthorizedRequest(p, method, headers, uri, query, r)
 }
 
-func (p *smugMugClient) ParseRequestTokenResult(value string) (AuthToken, os.Error) {
+func (p *smugMugClient) ParseRequestTokenResult(value string) (AuthToken, error) {
     LogDebug("+++++++++++++++++++++++++++++++")
     LogDebug("SmugMug! Client parsing request token result")
     t, err := defaultOAuth1ParseAuthToken(value)
@@ -162,7 +166,7 @@ func (p *smugMugClient) ParseRequestTokenResult(value string) (AuthToken, os.Err
     return t, err
 }
 
-func (p *smugMugClient) ParseAccessTokenResult(value string) (AuthToken, os.Error) {
+func (p *smugMugClient) ParseAccessTokenResult(value string) (AuthToken, error) {
     LogDebug("+++++++++++++++++++++++++++++++")
     LogDebug("SmugMug! Client parsing access token result")
     t := new(smugMugAccessTokenResult)
@@ -173,24 +177,24 @@ func (p *smugMugClient) ParseAccessTokenResult(value string) (AuthToken, os.Erro
         t.guid = m.Get("xoauth_smugMug_guid")
         t.sessionHandle = m.Get("oauth_session_handle")
         strExpiresIn := m.Get("oauth_authorization_expires_in")
-        expiresIn, _ := strconv.Atoi64(strExpiresIn)
+        expiresIn, _ := strconv.ParseInt(strExpiresIn, 10, 64)
         if expiresIn > 0 {
-            t.expiresAt = time.SecondsToUTC(time.Seconds() + expiresIn)
+            t.expiresAt = time.Now().Add(time.Second * time.Duration(expiresIn)).UTC()
         }
         if err == nil && len(m.Get("oauth_problem")) > 0 {
-            err = os.NewError(m.Get("oauth_problem"))
+            err = errors.New(m.Get("oauth_problem"))
         }
     }
     LogDebug("+++++++++++++++++++++++++++++++")
     return t, err
 }
 
-func (p *smugMugClient) RetrieveUserInfo() (UserInfo, os.Error) {
+func (p *smugMugClient) RetrieveUserInfo() (UserInfo, error) {
     req, err := p.CreateAuthorizedRequest(_SMUGMUG_USERINFO_METHOD, nil, _SMUGMUG_USERINFO_URL, nil, nil)
     if err != nil {
         return nil, err
     }
-    result := new(smugMugUserInfoResult)
+    result := NewSmugMugUserInfoResult()
     resp, _, err := MakeRequest(p, req)
     if resp != nil && resp.Body != nil {
         props := jsonhelper.NewJSONObject()

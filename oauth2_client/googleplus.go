@@ -1,16 +1,16 @@
 package oauth2_client
 
 import (
-    "github.com/pomack/jsonhelper.go/jsonhelper"
     "bytes"
-    "http"
+    "encoding/json"
+    "errors"
+    "github.com/pomack/jsonhelper.go/jsonhelper"
     "io"
-    "json"
-    "os"
+    "net/http"
+    "net/url"
     "strconv"
     "strings"
     "time"
-    "url"
 )
 
 type GooglePlusUserInfoResult interface {
@@ -72,15 +72,15 @@ func (p *googleplusUserInfoResult) Urls() []string {
 
 type googleplusClient struct {
     client       *http.Client
-    clientId     string     "client_id"
-    clientSecret string     "client_secret"
-    redirectUri  string     "redirect_uri"
-    scope        string     "scope"
-    state        string     "state"
-    accessToken  string     "access_token"
-    expiresAt    *time.Time "expires_at"
-    tokenType    string     "token_type"
-    refreshToken string     "refresh_token"
+    clientId     string    "client_id"
+    clientSecret string    "client_secret"
+    redirectUri  string    "redirect_uri"
+    scope        string    "scope"
+    state        string    "state"
+    accessToken  string    "access_token"
+    expiresAt    time.Time "expires_at"
+    tokenType    string    "token_type"
+    refreshToken string    "refresh_token"
 }
 
 type googleplusAuthorizationCodeResponse struct {
@@ -98,13 +98,13 @@ func (p *googleplusClient) Client() *http.Client {
     return p.client
 }
 
-func (p *googleplusClient) ClientId() string      { return p.clientId }
-func (p *googleplusClient) ClientSecret() string  { return p.clientSecret }
-func (p *googleplusClient) RedirectUri() string   { return p.redirectUri }
-func (p *googleplusClient) AccessToken() string   { return p.accessToken }
-func (p *googleplusClient) ExpiresAt() *time.Time { return p.expiresAt }
+func (p *googleplusClient) ClientId() string     { return p.clientId }
+func (p *googleplusClient) ClientSecret() string { return p.clientSecret }
+func (p *googleplusClient) RedirectUri() string  { return p.redirectUri }
+func (p *googleplusClient) AccessToken() string  { return p.accessToken }
+func (p *googleplusClient) ExpiresAt() time.Time { return p.expiresAt }
 func (p *googleplusClient) ExpiresAtString() string {
-    if p.expiresAt == nil {
+    if p.expiresAt.IsZero() {
         return ""
     }
     return p.expiresAt.Format(GOOGLE_DATETIME_FORMAT)
@@ -136,9 +136,9 @@ func (p *googleplusClient) Initialize(properties jsonhelper.JSONObject) {
         p.accessToken = v.(string)
     }
     if v, ok := properties["googleplus.client.expires_at"]; ok {
-        seconds, err := strconv.Atoi64(v.(string))
+        seconds, err := strconv.ParseInt(v.(string), 10, 64)
         if err == nil {
-            p.expiresAt = time.SecondsToUTC(time.Seconds() + seconds)
+            p.expiresAt = time.Now().Add(time.Second * time.Duration(seconds)).UTC()
         } else {
             if expiresAt, err := time.Parse(GOOGLE_DATETIME_FORMAT, v.(string)); err == nil {
                 p.expiresAt = expiresAt
@@ -187,8 +187,8 @@ func (p *googleplusClient) GenerateAuthorizationCodeUri(code string) (string, ur
     return _GOOGLEPLUS_AUTHORIZATION_CODE_URL, m
 }
 
-func (p *googleplusClient) HandleClientAccept(code string) os.Error {
-    now := time.UTC()
+func (p *googleplusClient) HandleClientAccept(code string) error {
+    now := time.Now().UTC()
     url, m := p.GenerateAuthorizationCodeUri(code)
     req, err := http.NewRequest(_GOOGLEPLUS_AUTHORIZATION_CODE_METHOD, url, bytes.NewBufferString(m.Encode()))
     if err != nil {
@@ -210,7 +210,7 @@ func (p *googleplusClient) HandleClientAccept(code string) os.Error {
         return err2
     }
     if len(s.AccessToken) > 0 && len(s.RefreshToken) > 0 {
-        p.expiresAt = time.SecondsToUTC(now.Seconds() + int64(s.ExpiresIn))
+        p.expiresAt = time.Unix(now.Unix()+int64(s.ExpiresIn), 0).UTC()
         p.accessToken = s.AccessToken
         p.tokenType = s.TokenType
         p.refreshToken = s.RefreshToken
@@ -218,24 +218,24 @@ func (p *googleplusClient) HandleClientAccept(code string) os.Error {
     return nil
 }
 
-func (p *googleplusClient) handleClientAcceptRequest(req *http.Request) os.Error {
+func (p *googleplusClient) handleClientAcceptRequest(req *http.Request) error {
     q := req.URL.Query()
     error := q.Get("error")
     if len(error) > 0 {
         LogError("Received error in client accept request")
-        return os.NewError(error)
+        return errors.New(error)
     }
     code := q.Get("code")
     if len(code) <= 0 {
         LogError("Received no code in client accept request")
-        return os.NewError("Expected URL parameter \"code\" in request but not found")
+        return errors.New("Expected URL parameter \"code\" in request but not found")
     }
     return p.HandleClientAccept(code)
 }
 
-func (p *googleplusClient) UpdateAccessToken() (string, os.Error) {
-    now := time.UTC()
-    if p.expiresAt == nil || p.expiresAt.Seconds() <= now.Seconds() {
+func (p *googleplusClient) UpdateAccessToken() (string, error) {
+    now := time.Now().UTC()
+    if p.expiresAt.IsZero() || p.expiresAt.Unix() <= now.Unix() {
         m := make(url.Values)
         m.Add("client_id", p.clientId)
         m.Add("client_secret", p.clientSecret)
@@ -258,7 +258,7 @@ func (p *googleplusClient) UpdateAccessToken() (string, os.Error) {
             return "", err2
         }
         if len(s.AccessToken) > 0 {
-            p.expiresAt = time.SecondsToUTC(now.Seconds() + int64(s.ExpiresIn))
+            p.expiresAt = time.Unix(now.Unix()+int64(s.ExpiresIn), 0).UTC()
             p.accessToken = s.AccessToken
             if len(s.RefreshToken) > 0 {
                 p.refreshToken = s.RefreshToken
@@ -305,13 +305,13 @@ func (p *googleplusClient) GenerateRequestTokenUrl(properties jsonhelper.JSONObj
 
 func (p *googleplusClient) RequestTokenGranted(req *http.Request) bool {
     if err := p.handleClientAcceptRequest(req); err != nil {
-        LogError("Error in client accept request: ", err.String())
+        LogError("Error in client accept request: ", err.Error())
         return false
     }
     return true
 }
 
-func (p *googleplusClient) ExchangeRequestTokenForAccess(req *http.Request) os.Error {
+func (p *googleplusClient) ExchangeRequestTokenForAccess(req *http.Request) error {
     if len(p.refreshToken) <= 0 {
         if err := p.handleClientAcceptRequest(req); err != nil {
             return err
@@ -321,7 +321,7 @@ func (p *googleplusClient) ExchangeRequestTokenForAccess(req *http.Request) os.E
     return err
 }
 
-func (p *googleplusClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, os.Error) {
+func (p *googleplusClient) CreateAuthorizedRequest(method string, headers http.Header, uri string, query url.Values, r io.Reader) (*http.Request, error) {
     if len(method) <= 0 {
         method = GET
     }
@@ -345,7 +345,7 @@ func (p *googleplusClient) CreateAuthorizedRequest(method string, headers http.H
     return req, err
 }
 
-func (p *googleplusClient) RetrieveUserInfo() (UserInfo, os.Error) {
+func (p *googleplusClient) RetrieveUserInfo() (UserInfo, error) {
     req, err := p.CreateAuthorizedRequest(_GOOGLEPLUS_USERINFO_METHOD, nil, _GOOGLEPLUS_USERINFO_URL, nil, nil)
     if err != nil {
         return nil, err
